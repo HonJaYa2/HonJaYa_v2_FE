@@ -1,17 +1,16 @@
 'use client'
 
-import Image from 'next/image';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, ReactNode } from 'react';
 
 type Props = {
     index: number;
     imageFirst: boolean;
     imageUrl: string;
-    contents: string;
+    contents: ReactNode; // string에서 ReactNode로 변경
 }
 
 const FeatureContainer = ({ index, imageFirst, imageUrl, contents }: Props) => {
-    //지연 렌더링(스크롤 내려야지 하단 특징 컨테이너 렌더링)
+    // 지연 렌더링(스크롤 내려야지 하단 특징 컨테이너 렌더링)
     const [showImage, setShowImage] = useState<boolean>(false);
     const [showContent, setShowContent] = useState<boolean>(false);
 
@@ -27,7 +26,7 @@ const FeatureContainer = ({ index, imageFirst, imageUrl, contents }: Props) => {
             {
                 rootMargin: '0px',
             }
-        )
+        );
 
         const contentObserver = new IntersectionObserver(
             ([entry]) => {
@@ -37,7 +36,7 @@ const FeatureContainer = ({ index, imageFirst, imageUrl, contents }: Props) => {
                 rootMargin: '0px',
                 threshold: 0.5,
             }
-        )
+        );
 
         if (imageRef.current) {
             imageObserver.observe(imageRef.current);
@@ -57,48 +56,26 @@ const FeatureContainer = ({ index, imageFirst, imageUrl, contents }: Props) => {
         };
     }, [imageRef, contentRef]);
 
-
     return (
-            imageFirst ? (
-                <div className='w-full h-8/10 flex justify-around my-4 items-center'>
-                    <div ref={imageRef} className=' border-main-color border-4 rounded-lg'>
-                        {showImage && (
-                            <img src={imageUrl}
-                                width={500}
-                                height={500}
-                                alt={`${index}`} 
-                            />
-                        )}
+        <div className='w-full h-6/10 flex justify-between my-20 items-center px-10 mb-40'>
+            <div className={`ml-40 ${imageFirst ? '' : 'order-last ml-0 mr-40'}`} ref={imageRef}>
+                {showImage && (
+                    <img className='rounded-lg' src={imageUrl}
+                        width={400}
+                        height={550}
+                        alt={`${index}`} 
+                    />
+                )}
+            </div>
+            <div className='w-1/2 h-full ml-40' ref={contentRef}>
+                {showContent && (
+                    <div className='text-left p-4 overflow-hidden animate-fade-in-up'>
+                        {contents}
                     </div>
-                    <div className='w-1/2 h-full' ref={contentRef}>
-                        {showContent && (
-                            <div className='w-full h-full box-border text-2xl font-jua text-center text-wrap p-4 overflow-hidden animate-fade-in-up'>
-                                {contents}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            ) : (
-                <div className='w-full h-8/10 flex justify-around my-4 items-center'>
-                    <div className='w-1/2 h-full' ref={contentRef}>
-                        {showContent && (
-                            <div className='w-full h-full box-border text-2xl font-jua text-center text-wrap p-4 overflow-hidden animate-fade-in-up'>
-                            {contents}
-                            </div>
-                        )}
-                    </div>
-                    <div ref={imageRef} className=' border-main-color border-4 rounded-lg'>
-                        {showImage && (
-                            <img src={imageUrl}
-                                width={500}
-                                height={500}
-                                alt={`${index}`} 
-                            />
-                        )}
-                    </div>
-                </div>
-            )
-    )
-
+                )}
+            </div>
+        </div>
+    );
 }
-export default FeatureContainer
+
+export default FeatureContainer;
