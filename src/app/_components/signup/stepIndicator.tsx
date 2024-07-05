@@ -2,7 +2,7 @@ interface StepIndicatorProps {
     currentStep: number;
 }
 
-const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep }) => {
+const StepIndicator  : React.FC<StepIndicatorProps> = ({ currentStep }) => {
     return (
         <div className="flex justify-center py-2 mb-10">
             {[1, 2, 3, 4].map((index) => {

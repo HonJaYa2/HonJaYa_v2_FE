@@ -37,3 +37,10 @@ export const exitGroup = () => ({
     type: 'EXIT_GROUP',
 });
 
+export const setProfile = () => ({
+    type: 'SET_PROFILE',
+});
+
+
+
+

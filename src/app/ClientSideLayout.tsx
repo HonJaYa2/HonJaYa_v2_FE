@@ -2,7 +2,7 @@
 'use client'
 
 import { useSelector } from "react-redux"
-import MatchingModal from "./_components/MatchingModal"
+import MatchingModal from "./_components/wait/MatchingModal"
 import { RootState } from "@/state/reducers/rootReducer"
 import { CookiesProvider } from "react-cookie"
 
@@ -20,10 +20,9 @@ const ClientSideLayout = ({
         <CookiesProvider>
             <div>
                 {children}
-                {isOpened && <MatchingModal />}
+                {/* {isOpened && <MatchingModal />} */}
             </div>
         </CookiesProvider>
-
     )
 }
 

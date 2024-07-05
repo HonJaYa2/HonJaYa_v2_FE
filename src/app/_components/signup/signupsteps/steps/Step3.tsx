@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import CustomNumberInput from '../customNum';
-import StepIndicator from '../stepIndicator';
-import NavigationButtons from './navigationbuttons/NavigationButtons';
+import CustomNumberInput from '../../../customNum';
+import StepIndicator from '../../stepIndicator';
+import NavigationButtons from '../navigationbuttons/NavigationButtons';
 
 const mbtiTypes = ['INFJ', 'INFP', 'ENFJ', 'ENFP', 'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ', 'INTJ', 'INTP', 'ENTJ', 'ENTP', 'ISTP', 'ISFP', 'ESTP', 'ESFP'];
 const religionTypes = ['기독교', '불교', '천주교', '이슬람', '기타', '무교'];
@@ -54,10 +54,10 @@ const Step3: React.FC<Step3Props> = ({ nextStep, prevStep, updateFormData, formD
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen">
-            <div className="w-full max-w-xl p-12 bg-white shadow-md rounded-lg border-4 border-red-300">
+        <div className=" w-2/3 h-4/5 flex items-center justify-center">
+            <div className="w-full h-full flex flex-col justify-center items-center p-8 bg-white shadow-md rounded-lg border-4 border-red-300 ">
                 <StepIndicator currentStep={3} />
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="w-full h-full space-y-6 overflow-auto">
                     <label htmlFor="additional-info" className="block text-4xl text-center mb-10">추가 정보</label>
                     <div className="text-center">
                         <label htmlFor="physical-specs" className="block text-2xl mb-2">신체 스펙</label>

@@ -2,9 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from "react";
-import StepIndicator from "../stepIndicator";
-import NavigationButtons from './navigationbuttons/NavigationButtons';
-import { getData, postData } from '../../api/api';
+import StepIndicator from "../../stepIndicator";
+import NavigationButtons from '../navigationbuttons/NavigationButtons';
+import { getData, postData } from '../../../../api/api';
 import { FormData } from '@/app/(route)/signup/FormData';
 import useCurrentLocation from '@/app/utils/hooks/getCurrentLoaction';
 import { useGeolocated } from "react-geolocated";
@@ -15,9 +15,10 @@ interface Step4Props {
     prevStep: () => void;
     updateFormData: (data: Partial<FormData>) => void;
     formData: Partial<FormData>; // FormData 인터페이스에 맞게 설정 필요
+    setOpenSignUpModal: () => void;
 }
 
-export default function Step4({ nextStep, prevStep, updateFormData, formData }: Step4Props) {
+export default function Step4({ nextStep, prevStep, updateFormData, formData, setOpenSignUpModal }: Step4Props) {
     const [agree, setAgree] = useState<boolean>(false);
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [userId, setUserId] = useState<string>("");
@@ -38,25 +39,25 @@ export default function Step4({ nextStep, prevStep, updateFormData, formData }: 
     //     });
 
 
-    useEffect(() => {
-        const asyncronizedSetter = async () => {
-            await setCurrentLocation();
-        }
+    // useEffect(() => {
+    //     const asyncronizedSetter = async () => {
+    //         await setCurrentLocation();
+    //     }
 
-        const setUserIdFirst = async () => {
-            const userData = await getData("/users/current", "honjaya");
-            setUserId(() => (userData.data.id))
-            setUserName(() => (userData.data.name))
-        }
-        if (formData.gender) localStorage.setItem("userGender", formData.gender);
+    //     const setUserIdFirst = async () => {
+    //         const userData = await getData("/users/current", "honjaya");
+    //         setUserId(() => (userData.data.id))
+    //         setUserName(() => (userData.data.name))
+    //     }
+    //     if (formData.gender) localStorage.setItem("userGender", formData.gender);
 
-        asyncronizedSetter();
-        setUserIdFirst();
-    }, []);
+    //     asyncronizedSetter();
+    //     setUserIdFirst();
+    // }, []);
 
-    useEffect(() => {
+    // useEffect(() => {
 
-    }, [onLoading]);
+    // }, [onLoading]);
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -105,14 +106,14 @@ export default function Step4({ nextStep, prevStep, updateFormData, formData }: 
 
     const getLocation = () => {
         setOnLoading(true);
-            const kakaoLocation = getData(`/local/geo/coord2regioncode.json?x=${location.lon}&y=${location.lat}`, "kakao");
-            // console.log(kakaoLocation);
-            kakaoLocation.then((result) => {
-                const here = result.documents[0].address_name.split(" ")[1]
-                // console.log(result);
-                updateFormData({ address: here });
-                setHere(here);
-            }).catch(error => console.log(error));
+        const kakaoLocation = getData(`/local/geo/coord2regioncode.json?x=${location.lon}&y=${location.lat}`, "kakao");
+        // console.log(kakaoLocation);
+        kakaoLocation.then((result) => {
+            const here = result.documents[0].address_name.split(" ")[1]
+            // console.log(result);
+            updateFormData({ address: here });
+            setHere(here);
+        }).catch(error => console.log(error));
         setOnLoading(false);
     }
 
@@ -157,41 +158,41 @@ export default function Step4({ nextStep, prevStep, updateFormData, formData }: 
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen">
-            <div className="w-full max-w-xl p-12 bg-white shadow-md rounded-lg border-4 border-red-300">
+        <div className=" w-2/3 h-4/5 flex items-center justify-center">
+            <div className="w-full h-full flex flex-col justify-center items-center p-8 bg-white shadow-md rounded-lg border-4 border-red-300 ">
                 <StepIndicator currentStep={4} />
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="block text-4xl text-center mb-10">위치 정보 제공</div>
-                    <div className="text-center h-full flex flex-col justify-center items-center">
+                <form onSubmit={handleSubmit} className="w-full h-full">
+                    <div className="block text-2xl text-center mb-10">위치 정보 제공</div>
+                    <div className="text-center flex flex-col justify-center items-center">
                         {
-                            here? <div className={`flex justify-center mb-10 h-3/10 w-4/10 py-2 px-6  rounded-lg text-2xl `}>
-                                I'm in {here}
+                            here ? <div className={`flex justify-center mb-10 h-3/10 w-4/10 py-2 px-6  rounded-lg text-2xl `}>
+                                {here}
                             </div> : <button
-                            type="button"
-                            onClick={getLocation}
-                            className={`flex justify-center mb-10 h-3/10 w-3/10 py-2 px-6 rounded-lg text-2xl hover:border-main-color hover:border-4 outline-none`}
-                        >
-                            {onLoading ?
-                                <img
-                                src='https://www.svgrepo.com/show/232270/loading.svg'
-                                alt='gps_icon'
-                                className='w-full h-full'
-                            />
+                                type="button"
+                                onClick={getLocation}
+                                className={`flex justify-center mb-10 h-2/10 w-2/10 py-2 px-6 rounded-lg text-2xl hover:border-main-color hover:border-4 outline-none`}
+                            >
+                                {onLoading ?
+                                    <img
+                                        src='https://www.svgrepo.com/show/232270/loading.svg'
+                                        alt='gps_icon'
+                                        className='w-full h-full'
+                                    />
 
-                                : <img
-                                    src='https://www.svgrepo.com/show/524610/gps.svg'
-                                    alt='gps_icon'
-                                    className='w-full h-full'
-                                />
+                                    : <img
+                                        src='https://www.svgrepo.com/show/524610/gps.svg'
+                                        alt='gps_icon'
+                                        className='w-full h-full'
+                                    />
 
-                            }
+                                }
 
-                        </button>
+                            </button>
                         }
                         <button
                             type="button"
                             onClick={handleAgreeButton}
-                            className={`w-6/10 py-2 px-6 border-4 rounded-lg text-2xl ${agree ? 'border-red-500 bg-red-300 text-white' : 'border-red-300 bg-white text-black'}`}
+                            className={`w-4/10 py-2 px-6 border-4 rounded-lg text-2xl ${agree ? 'border-red-500 bg-red-300 text-white' : 'border-red-300 bg-white text-black'}`}
                         >
                             {agree ? '동의 완료' : '위치 정보 제공에 동의'}
                         </button>

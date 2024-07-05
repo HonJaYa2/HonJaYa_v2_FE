@@ -18,6 +18,7 @@ import { useEffect, useState } from 'react';
 import { getData } from "@/app/api/api";
 import GroupChatContainer from "@/app/_components/wait/team/GroupChatContainer";
 import SingleChatContainer from "@/app/_components/wait/single/SingleChatContainer";
+import MatchedUserModal from "@/app/_components/wait/MatchedUserModal";
 
 const WaitingRoom = () => {
     const [groupObjects, setGroupObjects] = useState("");
@@ -38,6 +39,8 @@ const WaitingRoom = () => {
     const isTeam = useSelector((state: RootState) => state.modeCheck.isTeam)
     const isMatchingModalOpened = useSelector((state: RootState) => state.matchingStatusModal.isOpened)
     const isLogined = useSelector((state: RootState) => state.loginCheck.isLogined)
+    const matchingModalOpen = useSelector((state: RootState) => state.matchingStatusModal.isOpened)
+
     // const onGroup = useSelector((state: RootState) => state.onGroup.onGroup)
     const router = useRouter();
 
@@ -167,7 +170,8 @@ const WaitingRoom = () => {
     return (
         <div className="flex h-screen w-screen flex-col items-center justify-between bg-white">
             <Navigationbar />
-            <div style={{ height: "90%" }} className="w-full overflow-y-auto">
+            {matchingModalOpen && <MatchedUserModal/>}
+            <div style={{ height: "90%" }} className="w-full overflow-y-auto bg-balloons">
                 <div className="w-full h-auto min-h-4"></div>
                 <div className="w-full h-1/10 text-3xl font-jua flex items-end justify-around box-border pt-2 px-10">
                     {isTeam ? <div className="flex items-end w-3/10 h-full text-4xl">채팅방</div> : <div className="flex w-3/10 items-end h-full text-4xl">매칭된 상대</div>}

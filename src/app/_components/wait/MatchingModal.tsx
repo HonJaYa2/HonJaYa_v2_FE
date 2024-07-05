@@ -7,7 +7,7 @@ import { postData } from '@/app/api/api';
 import { useDispatch } from 'react-redux';
 import { setMatchingModalClose } from '@/state/actions';
 
-const MatchingModal = () => {
+const MatchingModal = ({setOpenMatchingModal}:{setOpenMatchingModal : ()=>void}) => {
     const dispatch = useDispatch();
     const [matchingResult, setMatchingResult] = useState(null);
     const [userId, setUserId] = useState(localStorage.getItem('user_id'));
@@ -63,9 +63,25 @@ const MatchingModal = () => {
     }, [matchingResult]);
 
     return (
-        <div className='invisible'>
-            매칭 중!
-        </div>
+        <div className="z-20 w-full h-full flex justify-center items-center fixed inset-0 bg-black bg-opacity-0">
+            <div className=" w-4/10 h-7/10 flex flex-col items-center justify-center bg-white border-main-color border-4 rounded-md">
+
+                <div className='w-4/10 h-1/10'>
+                <p className='w-full h-7/10 font-mono flex items-center justify-center text-center text-lg text-white shadow-sm bg-main-color rounded-full'>
+                    매칭 중
+                </p>
+                </div>
+
+
+                <div className="w-4/5 h-6/10 flex flex-col items-center justify-center box-border p-1">
+                    <div className='w-2/5 h-3/5 bg-gray-300 rounded-full border-main-color'>
+                    </div>
+                </div>
+                <div className="w-4/5 h-2/10 text-3xl flex flex-col justify-center items-center box-border p-1">
+                &nbsp;&nbsp;&nbsp;&nbsp;잠시만 기다려주세요...
+                </div>
+            </div>
+        </div >
     );
 };
 

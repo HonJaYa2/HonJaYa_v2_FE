@@ -40,6 +40,7 @@ const config: Config = {
         "right-arrow": "url(/right-arrow.png)",
         "left-arrow": "url(/left-arrow.png)",
         "filter": "url(/filter.png)",
+        "balloons": "url(/balloonBackground.png)",
       },
       colors: {
         "main-color": "#EE9D95",

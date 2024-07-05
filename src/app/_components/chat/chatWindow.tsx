@@ -4,6 +4,7 @@ import ChatInput from './chatInput';
 import SockJS from 'sockjs-client';
 import { CompatClient, Stomp } from '@stomp/stompjs';
 import { getData } from '@/app/api/api';
+import Navigationbar from '../common/Navigationbar';
 
 interface ChatWindowProps {
     roomId: any;
@@ -177,6 +178,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ roomId, isGroupChat }) => {
 
     return (
         <div className="flex flex-col h-full">
+            <Navigationbar/>
             <div id="chat-box" className="flex-grow overflow-y-auto p-4">
                 {messages.length === 0 ? (
                     <div className="text-center text-gray-500">No messages yet</div>
