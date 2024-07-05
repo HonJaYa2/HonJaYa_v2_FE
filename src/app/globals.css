@@ -1,0 +1,23 @@
+/* 한글 폰트 추가 */
+@import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* styles/globals.css 또는 Tailwind CSS 파일 */
+@keyframes typing {
+    from { width: 0 }
+    to { width: 100% }
+  }
+  
+  @keyframes blink-caret {
+    from, to { border-color: transparent }
+    50% { border-color: white }
+  }
+  
+  .typing-text {
+    @apply overflow-hidden border-r-2 border-white whitespace-nowrap;
+    animation: typing 3.5s steps(40, end), blink-caret .75s step-end infinite;
+  }
+  
