@@ -15,7 +15,7 @@ const Typewriter: React.FC<TypewriterProps> = ({ texts }) => {
         if (j < currentText.length) {
           (document.querySelector("#typewriter-text") as HTMLElement).innerHTML = currentText.substring(0, j + 1) + '<span aria-hidden="true" class="border-r border-white"></span>';
           j++;
-          setTimeout(typeWriter, 100);
+          setTimeout(typeWriter, 150);
         } else {
           j = 0;
           i++;
@@ -31,7 +31,7 @@ const Typewriter: React.FC<TypewriterProps> = ({ texts }) => {
   }, [texts]);
 
   return (
-    <span id="typewriter-text" className="border-r border-white border-yellow-500 text-yellow-300"></span>
+    <span id="typewriter-text" className="border-r border-yellow-500 text-yellow-200"></span>
   );
 };
 
