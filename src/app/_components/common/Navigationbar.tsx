@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/state/reducers/rootReducer';
@@ -9,9 +9,14 @@ import { init } from '@/state/actions';
 import Link from 'next/link';
 import { postData } from '@/app/api/api';
 
-const Navigationbar = () => {
+interface NavigationbarProps {
+    alwaysVisible?: boolean;
+}
+
+const Navigationbar: React.FC<NavigationbarProps> = ({ alwaysVisible }) => {
     const [menuOpen, setMenuOpen] = useState<boolean>(false);
     const [popupVisible, setPopupVisible] = useState<boolean>(false);
+    const [navbarHover, setNavbarHover] = useState<boolean>(false);
     const isLogined = useSelector((state: RootState) => state.loginCheck.isLogined);
     const dispatch = useDispatch();
     const router = useRouter();
@@ -47,9 +52,15 @@ const Navigationbar = () => {
     };
 
     return (
-        <div className="flex w-full h-1/10 items-center justify-between text-lg bg-main-color font-jua">
-            <div className='relative w-1/12 h-full'>
-                <img src='/logo1.png' className="w-auto" alt="로고1" />
+        <div
+            className={`px-32 fixed top-0 left-0 w-full h-16 flex items-center justify-between text-lg bg-main-color transition-opacity duration-300 z-50 ${
+                alwaysVisible || navbarHover ? 'opacity-100' : 'opacity-20'
+            }`}
+            onMouseEnter={() => setNavbarHover(true)}
+            onMouseLeave={() => setNavbarHover(false)}
+        >
+            <div className='relative w-2/12 h-full'>
+                <img src='/logo.png' className="w-auto h-full" style={{ clipPath: 'inset(0 10px 0 0)' }} alt="로고" />
             </div>
             <div
                 className='relative flex font-light text-white items-center justify-center w-1/12 h-full hover:underline'
@@ -58,7 +69,9 @@ const Navigationbar = () => {
             >
                 Menu
                 <div
-                    className={`z-20 absolute top-full w-48 shadow transition-all duration-300 ${menuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}`}
+                    className={`z-20 absolute top-full w-48 shadow transition-all duration-300 ${
+                        menuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
+                    }`}
                 >
                     <ul className='list-none flex-col text-center justify-center items-center m-0 p-0 text-white'>
                         <li className='px-4 py-2 bg-main-color bg-opacity-70 cursor-pointer outline-none hover:bg-opacity-60 hover:text-xl'>

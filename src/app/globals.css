@@ -5,19 +5,75 @@
 @tailwind components;
 @tailwind utilities;
 
-/* styles/globals.css 또는 Tailwind CSS 파일 */
+@layer components {
+
+  .heart-section {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+  }
+
+  .heart-section .heart {
+    background-color: #c53030; /* Tailwind color: darken red */
+    position: absolute;
+    width: 50px; /* 기본 너비 */
+    height: 50px; /* 기본 높이 */
+    transform: rotate(135deg); /* 45도 추가 회전 */
+    transform-origin: center center;
+    animation: hearts 15s linear infinite;
+    z-index: 0;
+  }
+
+  .heart-section .heart::before,
+  .heart-section .heart::after {
+    content: '';
+    background-color: #c53030;
+    border-radius: 50%;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+  }
+
+  .heart-section .heart::before {
+    top: -50%;
+    left: 0;
+  }
+
+  .heart-section .heart::after {
+    top: 0;
+    left: -50%;
+  }
+
+  @keyframes hearts {
+    0% {
+      transform: translateY(400px) rotate(45deg);
+      opacity: 0;
+    }
+    10%, 90% {
+      opacity: 1;
+    }
+    50% {
+      transform: translateY(0) rotate(0deg);
+    }
+    100% {
+      transform: translateY(-400px) rotate(45deg);
+      opacity: 0;
+    }
+  }
+}
+
 @keyframes typing {
-    from { width: 0 }
-    to { width: 100% }
-  }
-  
-  @keyframes blink-caret {
-    from, to { border-color: transparent }
-    50% { border-color: white }
-  }
-  
-  .typing-text {
-    @apply overflow-hidden border-r-2 border-white whitespace-nowrap;
-    animation: typing 3.5s steps(40, end), blink-caret .75s step-end infinite;
-  }
-  
+  from { width: 0 }
+  to { width: 100% }
+}
+
+@keyframes blink-caret {
+  from, to { border-color: transparent }
+  50% { border-color: white }
+}
+
+.typing-text {
+  @apply overflow-hidden border-r-2 border-white whitespace-nowrap;
+  animation: typing 3.5s steps(40, end), blink-caret .75s step-end infinite;
+}

@@ -9,15 +9,15 @@ const config: Config = {
   theme: {
     extend: {
       width: { 
-       '1/10': '10%',
-       '2/10': '20%',
-       '3/10': '30%',
-       '4/10': '40%',
-       '5/10': '50%',
-       '6/10': '60%',
-       '7/10': '70%',
-       '8/10': '80%',
-       '9/10': '90%',
+        '1/10': '10%',
+        '2/10': '20%',
+        '3/10': '30%',
+        '4/10': '40%',
+        '5/10': '50%',
+        '6/10': '60%',
+        '7/10': '70%',
+        '8/10': '80%',
+        '9/10': '90%',
       },
       height: { 
         '1/10': '10%',
@@ -29,11 +29,10 @@ const config: Config = {
         '7/10': '70%',
         '8/10': '80%',
         '9/10': '90%',
-       },
+      },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
-        "gradient-conic":
-          "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
+        "gradient-conic": "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
         "couple-image-1": "url(/couple1.png)",
         "couple-image-2": "url(/couple2.png)",
         "kakao-logo": "url('https://statics.goorm.io/images/social/logo/kakaoLogo.svg')",
@@ -65,6 +64,14 @@ const config: Config = {
           '0%': { opacity: '1', transform: 'translateY(0)' },
           '100%': { opacity: '0', transform: 'translateY(-10px)' },
         },
+
+        // 4페이지 하트 애니메이션
+        hearts: {
+          '0%': { transform: 'translateY(400px) rotate(-70deg)', opacity: '0' },
+          '10%, 90%': { opacity: '1' },
+          '50%': { transform: 'translateY(0) rotate(-40deg)' },
+          '100%': { transform: 'translateY(-400px) rotate(-70deg)', opacity: '0' },
+        }
       },
       animation: {
         slide: 'slide 10s linear infinite',
@@ -72,14 +79,13 @@ const config: Config = {
         'fade-in-down-left': 'fade-in-down-left 0.3s ease-out',
         'fade-in-up': 'fade-in-up 1s ease-out',
         'fade-out-up': 'fade-out-up 1s ease-out',
+        
+        // 4페이지 하트 애니메이션
+        hearts: 'hearts 15s linear infinite',
       },
       fontFamily: {
         jua: ['Jua', 'sans-serif'],
       }, 
-
-
-      
-
     },
   },
   plugins: [],
