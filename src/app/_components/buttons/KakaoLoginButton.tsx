@@ -2,9 +2,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 const KakaoLoginButton = () => {
+  const redirect_URI = "http://localhost:3000/landing/authcallback"
+  const client_ID = "f80b172c8fd2c4405878f3227740f910"
   return (
       <Link
-        href="http://localhost:8080/api/oauth2/authorization/kakao"
+        href={`https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${client_ID}&redirect_uri=${redirect_URI}`}
       >
         <div className="mr-5">
           <Image

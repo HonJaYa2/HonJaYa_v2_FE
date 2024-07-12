@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/state/reducers/rootReducer';
@@ -27,7 +27,7 @@ const Navigationbar = () => {
             alert(response.message);
             return;
         }
-        dispatch(init())
+        dispatch(init());
         localStorage.removeItem("access_token");
         localStorage.removeItem("user_id");
         localStorage.removeItem("userGender");
@@ -48,13 +48,8 @@ const Navigationbar = () => {
 
     return (
         <div className="flex w-full h-1/10 items-center justify-between text-lg bg-main-color font-jua">
-            <div className='relative w-1/12 h-full overflow-hidden'>
-                <div className="flex-col animate-slide">
-                    <img src='/logo1.png' className="w-auto" alt="로고1" />
-                    <img src='/logo2.png' className="w-auto" alt="로고2" />
-                    <img src='/logo1.png' className="w-auto" alt="로고1_for_loop" />
-                    <img src='/logo2.png' className="w-auto" alt="로고2_for_loop" />
-                </div>
+            <div className='relative w-1/12 h-full'>
+                <img src='/logo1.png' className="w-auto" alt="로고1" />
             </div>
             <div
                 className='relative flex font-light text-white items-center justify-center w-1/12 h-full hover:underline'
@@ -65,10 +60,9 @@ const Navigationbar = () => {
                 <div
                     className={`z-20 absolute top-full w-48 shadow transition-all duration-300 ${menuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}`}
                 >
-                    <ul className='-none flex-col text-center justify-center items-center m-0 p-0 text-white'>
+                    <ul className='list-none flex-col text-center justify-center items-center m-0 p-0 text-white'>
                         <li className='px-4 py-2 bg-main-color bg-opacity-70 cursor-pointer outline-none hover:bg-opacity-60 hover:text-xl'>
                             <Link href="/landing">Home</Link>
-                            {/* <a href="/landing" onClick={(e) => handleLinkClick(e, "/landing")}>Home</a> */}
                         </li>
                         <li className='px-4 py-2 bg-main-color bg-opacity-70 cursor-pointer outline-none hover:bg-opacity-60 hover:text-xl'>
                             <a href="/wait" onClick={(e) => handleLinkClick(e, "/wait")}>Chat</a>
@@ -85,25 +79,6 @@ const Navigationbar = () => {
                     </ul>
                 </div>
             </div>
-            {/* <div
-                className='relative flex font-light text-white items-center justify-center w-1/12 h-full hover:underline'
-                onMouseEnter={handleMyPageHovering}
-                onMouseLeave={handleMyPageHovering}
-            >
-                My page
-                <div
-                    className={`z-20 absolute top-full w-48 shadow transition-all duration-300 ${myPageOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}`}
-                >
-                    <ul className='list-none flex-col text-center justify-center items-center m-0 p-0 text-white'>
-                        <li className='px-4 py-2 bg-main-color bg-opacity-70 cursor-pointer outline-none hover:bg-opacity-60 hover:text-xl'>
-                            <Link href="/mypage">Edit</Link>
-                        </li>
-                        <li className='px-4 py-2 bg-main-color bg-opacity-70 cursor-pointer outline-none hover:bg-opacity-60 hover:text-xl'>
-                            <button onClick={handleLogout}>Logout</button>
-                        </li>
-                    </ul>
-                </div>
-            </div> */}
             {isLogined === "Y" ? (
                 <div className='relative flex font-light text-white items-center justify-center w-1/12 h-full hover:underline'>
                     <button onClick={handleLogout}>Logout</button>

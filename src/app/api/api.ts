@@ -1,5 +1,6 @@
 const baseURL = "http://localhost:8080/api";
 const kakaoURL = "https://dapi.kakao.com/v2";
+const kakaoAuthURL = "https://kauth.kakao.com/oauth/token";
 const groupChatURL = "http://localhost:8081";
 
 const setHeaders = (dest: any) => {
