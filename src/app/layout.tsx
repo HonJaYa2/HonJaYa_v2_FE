@@ -1,13 +1,12 @@
-
 import type { Metadata } from "next";
-// import { FontClassNames } from "./Styles/Font";
-// import "./Styles/GlobalStyles.css";
 import React from "react";
 import Script from "next/script";
-import './globals.css'
+import './globals.css';
 import ReduxProvider from "@/state/provider";
 import ClientSideLayout from "./ClientSideLayout";
+import { Inter } from 'next/font/google';
 
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: "honjaya",
@@ -28,20 +27,23 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-
   return (
-    <html>
-      <body>
+    <html lang="en">
+      <head></head>
+      <body className={inter.className}>
         <ReduxProvider>
           <ClientSideLayout>
-              {children}
+            {children}
           </ClientSideLayout>
         </ReduxProvider>
+        <Script
+          async
+          src="https://t1.kakaocdn.net/kakao_js_sdk/2.3.0/kakao.min.js"
+          integrity="sha384-70k0rrouSYPWJt7q9rSTKpiTfX6USlMYjZUtr1Du+9o4cGvhPAWxngdtVZDdErlh"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </body>
-      <Script
-        src="https://developers.kakao.com/sdk/js/kakao.js"
-        strategy="afterInteractive"
-      />
     </html>
   );
 }

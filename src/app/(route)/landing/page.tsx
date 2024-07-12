@@ -26,9 +26,16 @@ const Landing: React.FC = () => {
   const features = Object.entries(FEATURE_OF_HONJAYA);
   const [cookies, , removeCookie] = useCookies();
   const [alwaysVisible, setAlwaysVisible] = useState(true);
+  const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
-    console.log(isLogined);
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    
+    if (token && user) {
+      setLoggedIn(true);
+      dispatch(approve());
+    }
 
     const clearAllCookies = () => {
       Object.keys(cookies).forEach(cookieName => {
@@ -37,7 +44,7 @@ const Landing: React.FC = () => {
       });
     };
 
-    if (!(isLogined === "Y")) {
+    if (!token) {
       clearAllCookies();
 
       if (verifyUser()) {
@@ -174,7 +181,13 @@ const Landing: React.FC = () => {
           </div>
           
           {/* 카카오 로그인 이미지 버튼 */}
-          <KakaoLoginButton />
+          {loggedIn ? (
+            <div className="mr-5">
+              <span>Logged in</span>
+            </div>
+          ) : (
+            <KakaoLoginButton />
+          )}
         </div>
 
         {/* 애니메이션 하트 추가 */}

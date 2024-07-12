@@ -1,7 +1,10 @@
 'use client'
 
+export const APPROVE_USER = 'APPROVE_USER';
+export const LOGOUT_USER = 'LOGOUT_USER';
+
 export const approve = () => ({
-    type: 'APPROVE_USER',
+    type: APPROVE_USER,
 });
 
 export const deny = () => ({
@@ -32,8 +35,10 @@ export const joinGroup = () => ({
     type: 'JOIN_GROUP',
 });
 
-
 export const exitGroup = () => ({
     type: 'EXIT_GROUP',
 });
 
+export const logout = () => ({
+    type: LOGOUT_USER,
+});

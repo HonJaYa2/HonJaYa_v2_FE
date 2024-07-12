@@ -9,6 +9,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/state/reducers/rootReducer';
 import { verifyUser } from '@/app/utils/verifyUser';
 import { approve } from '@/state/actions';
+import ShopNavbar from './ShopNavbar';
 import { postData } from '@/app/api/api';
 
 const ZemShop = () => {
@@ -19,10 +20,8 @@ const ZemShop = () => {
     const [userZem, setUserZem] = useState<number>(0);
 
     const dispatch = useDispatch();
-    const isLogined = useSelector((state: RootState) => state.loginCheck.isLogined)
+    const isLogined = useSelector((state: RootState) => state.loginCheck.isLogined);
     const router = useRouter();
-
-
 
     const items = [
         { id: 1, price: 100, diamonds: 1, image: "/zemImages/zem1.png", zem: 10 },
@@ -36,7 +35,7 @@ const ZemShop = () => {
     ];
 
     useEffect(() => {
-        if(!(isLogined === "Y")) {
+        if (!(isLogined === "Y")) {
             if (verifyUser()) {
                 dispatch(approve());
             } else {
@@ -51,7 +50,7 @@ const ZemShop = () => {
 
             if (token && userIdString) {
                 try {
-                    const response = await fetch(`http://localhost:8080/api/getCoin/${userIdString}`, {
+                    const response = await fetch(`/api/zemshop/user?userId=${userIdString}`, {
                         method: 'GET',
                         headers: {
                             'Content-Type': 'application/json',
@@ -64,7 +63,7 @@ const ZemShop = () => {
                     }
 
                     const data = await response.json();
-                    setUserZem(data);
+                    setUserZem(data.zem);
                 } catch (error) {
                     console.error('Error fetching user ZEM:', error);
                     setUserZem(0);
@@ -80,7 +79,7 @@ const ZemShop = () => {
     };
 
     const handlePaymentClick = async () => {
-        if(!(isLogined === "Y")) {
+        if (!(isLogined === "Y")) {
             setIsLoginModalOpen(true);
             return;
         }
@@ -97,28 +96,31 @@ const ZemShop = () => {
             return;
         }
 
-        const payInfoDto = {
-            price: selectedItemData.price,
-            itemName: "zem_" + selectedItemData.zem
-        };
-
-        // localStorage에서 가져오는 값은 문자열 형태로 이를 숫자로 반환해야 userId로 사용할 수 있다.
         const userIdString = localStorage.getItem("user_id");
-        let userId;
-
-        if (userIdString !== null && userIdString !== undefined) {
-            userId = parseInt(userIdString, 10);
-        } else {
-            userId = 0;
-        }
 
         try {
-            const data = await postData(`/payment/ready?userId=${localStorage.getItem('user_id')}`, payInfoDto, "honjaya")
-            const redirectUrl = data.redirectUrl;
-            window.location.href = redirectUrl;
+            const response = await fetch('/api/zemshop/purchase', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    userId: userIdString,
+                    itemId: selectedItem,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Purchase failed');
+            }
+
+            const data = await response.json();
+            alert('Purchase successful');
+            setUserZem(prevZem => prevZem - selectedItemData.price);
         } catch (error) {
-            console.error('Error during payment preparation:', error);
-            alert('Payment preparation failed');
+            console.error('Error during purchase:', error);
+            alert('Purchase failed');
         }
     };
 
@@ -136,6 +138,7 @@ const ZemShop = () => {
 
     return (
         <div className="p-20">
+            <ShopNavbar />
             <div className="relative flex justify-center mt-8 mb-12 max-w-5xl mx-auto">
                 <div
                     className="flex flex-col items-start justify-center py-12 px-12 bg-cover bg-center w-full"
