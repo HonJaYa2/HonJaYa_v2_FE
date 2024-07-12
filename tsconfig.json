@@ -33,7 +33,7 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "src/app/(route)/login/page.tsx"
-  ],
+, "src/app/api/zemshop/zem.js", "src/app/utils/KakaoLogout.js", "src/app/api/login.js"  ],
   "exclude": [
     "node_modules"
   ]
