@@ -1,13 +1,10 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '@/state/reducers/rootReducer';
+import { useCookies } from 'react-cookie';
 import KakaoLoginButton from '../buttons/KakaoLoginButton';
-import { init } from '@/state/actions';
 import Link from 'next/link';
-import { postData } from '@/app/api/api';
 
 interface NavigationbarProps {
     alwaysVisible?: boolean;
@@ -17,29 +14,17 @@ const Navigationbar: React.FC<NavigationbarProps> = ({ alwaysVisible }) => {
     const [menuOpen, setMenuOpen] = useState<boolean>(false);
     const [popupVisible, setPopupVisible] = useState<boolean>(false);
     const [navbarHover, setNavbarHover] = useState<boolean>(false);
-    const isLogined = useSelector((state: RootState) => state.loginCheck.isLogined);
-    const dispatch = useDispatch();
+    const [isLogined, setIsLogined] = useState<boolean>(false);
+    const [cookies] = useCookies(['token', 'user']);
     const router = useRouter();
+
+    useEffect(() => {
+        console.log('Cookies:', cookies);
+        setIsLogined(!!cookies.token);
+    }, [cookies]);
 
     const handleMenuHovering = () => {
         setMenuOpen((prevState) => !prevState);
-    };
-
-    const handleLogout = async () => {
-        const response = await postData("/logout", "", "honjaya");
-        console.log(response);
-        if (response.status === "error") {
-            alert(response.message);
-            return;
-        }
-        dispatch(init());
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("user_id");
-        localStorage.removeItem("userGender");
-        localStorage.removeItem("username");
-        window.location.href = "https://kauth.kakao.com/oauth/logout?client_id=bfaa02784d2e33bdd6b0083988df03c7&logout_redirect_uri=http://localhost:3000/landing";
-
-        window.location.reload();
     };
 
     const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
@@ -92,14 +77,7 @@ const Navigationbar: React.FC<NavigationbarProps> = ({ alwaysVisible }) => {
                     </ul>
                 </div>
             </div>
-            {isLogined === "Y" ? (
-                <div className='relative flex font-light text-white items-center justify-center w-1/12 h-full hover:underline'>
-                    <button onClick={handleLogout}>Logout</button>
-                </div>
-            ) : (
-                <KakaoLoginButton />
-            )}
-
+            <KakaoLoginButton />
             {popupVisible && (
                 <div className="fixed inset-0 flex items-center justify-center z-50">
                     <div className="bg-black bg-opacity-50 absolute inset-0"></div>

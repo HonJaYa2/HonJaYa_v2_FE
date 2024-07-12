@@ -1,19 +1,16 @@
-'use client'
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Navigationbar from "@/app/_components/common/Navigationbar";
 import { useDispatch, useSelector } from "react-redux";
-import { approve } from "@/state/actions";
 import { RootState } from "@/state/reducers/rootReducer";
 import { FEATURE_OF_HONJAYA } from "@/app/utils/assets/constants";
 import FeatureContainer from "../landing/FeatureContainer";
-import { verifyUser } from "@/app/utils/verifyUser";
 import { useCookies } from 'react-cookie';
 import Typewriter from './Typewritter'; 
-import KakaoLoginButton from '@/app/_components/buttons/KakaoLoginButton'; 
-
-
+import KakaoLoginButton from '@/app/_components/buttons/KakaoLoginButton';
+import { useSearchParams } from 'next/navigation';  // useSearchParams 훅 추가
 import { FiCheckCircle } from 'react-icons/fi'; // 성공
 import { BsChatDots } from 'react-icons/bs'; // 그룹 채팅
 import { GiCycle } from 'react-icons/gi'; // 유동적
@@ -22,27 +19,20 @@ const dataTexts = ["천생연분", "알콩달콩", "솔로탈출" , "오늘부�
 
 const Landing: React.FC = () => {
   const dispatch = useDispatch();
-  const isLogined = useSelector((state: RootState) => state.loginCheck.isLogined);
   const features = Object.entries(FEATURE_OF_HONJAYA);
-  const [cookies, , removeCookie] = useCookies();
+  const [cookies, , removeCookie] = useCookies(['token', 'user']);
   const [alwaysVisible, setAlwaysVisible] = useState(true);
+  const searchParams = useSearchParams();  // useSearchParams 훅 사용
 
   useEffect(() => {
-    console.log(isLogined);
+    console.log('Cookies:', cookies);
 
-    const clearAllCookies = () => {
-      Object.keys(cookies).forEach(cookieName => {
-        console.log(cookieName);
-        removeCookie(cookieName, { path: '/', sameSite: 'none', secure: true });
-      });
-    };
+    const login = searchParams.get('login');
 
-    if (!(isLogined === "Y")) {
-      clearAllCookies();
-
-      if (verifyUser()) {
-        dispatch(approve());
-      }
+    if (login === 'success') {
+      alert('로그인에 성공했습니다!');
+    } else if (login === 'failed') {
+      alert('로그인에 실패했습니다.');
     }
 
     const handleScroll = () => {
@@ -58,7 +48,7 @@ const Landing: React.FC = () => {
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [isLogined, cookies, dispatch, removeCookie]);
+  }, [cookies, searchParams]);
 
   // 랜덤 하트 생성
   const createHearts = () => {
