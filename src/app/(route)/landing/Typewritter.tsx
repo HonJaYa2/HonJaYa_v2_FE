@@ -12,14 +12,15 @@ const Typewriter: React.FC<TypewriterProps> = ({ texts }) => {
     function typeWriter() {
       if (i < texts.length) {
         const currentText = texts[i];
-        if (j < currentText.length) {
-          (document.querySelector("#typewriter-text") as HTMLElement).innerHTML = currentText.substring(0, j + 1) + '<span aria-hidden="true" class="border-r border-white"></span>';
+        const element = document.querySelector("#typewriter-text") as HTMLElement; //document.querySelector("#typewriter-text")가 null인지 확인하는 코드를 추가
+        if (element && j < currentText.length) {
+          element.innerHTML = currentText.substring(0, j + 1) + '<span aria-hidden="true" class="border-r border-white"></span>';
           j++;
           setTimeout(typeWriter, 150);
         } else {
           j = 0;
           i++;
-          setTimeout(typeWriter, 1800); // 텍스트가 완전히 입력된 후 대기 시간 (1.5초)
+          setTimeout(typeWriter, 1800); // 텍스트가 완전히 입력된 후 대기 시간 (1.8초)
         }
       } else {
         i = 0;

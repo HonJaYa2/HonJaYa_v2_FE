@@ -4,25 +4,24 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import ItemPurchase from '@/app/(route)/modal/@modal/shop/ItemPurchase';
 import LoginModal from '@/app/(route)/modal/@modal/shop/LoginModal';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/state/reducers/rootReducer';
-import { verifyUser } from '@/app/utils/verifyUser';
+import { useCookies } from 'react-cookie';
+import axios from 'axios';
 import { approve } from '@/state/actions';
-import { postData } from '@/app/api/api';
 
 const ZemShop = () => {
     const [selectedItem, setSelectedItem] = useState<number | null>(null);
     const [isItemShopOpen, setIsItemShopOpen] = useState(false);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-    const [token, setToken] = useState<string | null>(null);
     const [userZem, setUserZem] = useState<number>(0);
+    const [cookies] = useCookies(['token', 'user']);
+    const searchParams = useSearchParams();
 
     const dispatch = useDispatch();
-    const isLogined = useSelector((state: RootState) => state.loginCheck.isLogined)
+    const isLogined = useSelector((state: RootState) => state.loginCheck.isLogined);
     const router = useRouter();
-
-
 
     const items = [
         { id: 1, price: 100, diamonds: 1, image: "/zemImages/zem1.png", zem: 10 },
@@ -36,35 +35,27 @@ const ZemShop = () => {
     ];
 
     useEffect(() => {
-        if(!(isLogined === "Y")) {
-            if (verifyUser()) {
-                dispatch(approve());
-            } else {
-                router.push("/");
-            }
-        }
+        const fetchZem = async () => {
+            const token = cookies.token;
+            const user = cookies.user;
+            const userId = user?.id;
 
-        const fetchData = async () => {
-            const token = localStorage.getItem('access_token');
-            const userIdString = localStorage.getItem('user_id');
-            setToken(token);
+            console.log('Cookies:', cookies); // 로그인 상태 및 쿠키 확인 로그
+            console.log('User ID:', userId); // 사용자 ID 확인 로그
 
-            if (token && userIdString) {
+            if (token && userId) {
                 try {
-                    const response = await fetch(`http://localhost:8080/api/getCoin/${userIdString}`, {
-                        method: 'GET',
+                    const response = await axios.get(`http://localhost:3000/api/getZem/${userId}`, {
                         headers: {
-                            'Content-Type': 'application/json',
                             Authorization: `Bearer ${token}`,
                         },
                     });
 
-                    if (!response.ok) {
+                    if (!response.data) {
                         throw new Error('Failed to fetch user ZEM');
                     }
 
-                    const data = await response.json();
-                    setUserZem(data);
+                    setUserZem(response.data);
                 } catch (error) {
                     console.error('Error fetching user ZEM:', error);
                     setUserZem(0);
@@ -72,15 +63,30 @@ const ZemShop = () => {
             }
         };
 
-        fetchData();
-    }, [isLogined, dispatch, router]);
+        fetchZem();
+
+        const paymentStatus = searchParams.get('payment');
+        if (paymentStatus === 'success') {
+            alert('결제가 성공적으로 완료되었습니다!');
+            fetchZem(); // 결제 후 최신 Zem 수 가져오기
+        } else if (paymentStatus === 'fail') {
+            alert('결제에 실패했습니다.');
+        }
+   // Check if user is logged in
+   if (cookies.token && cookies.user) {
+    dispatch(approve());  // Update login state in Redux
+}
+}, [cookies, searchParams, dispatch]);
+
 
     const handleItemClick = (id: number) => {
         setSelectedItem(id);
     };
 
+
+    //isLogined가 제대로 작동하려면, 사용자가 로그인할 때 approve 액션을 디스패치하고, 로그아웃하거나 로그인 실패 시 deny 액션을 디스패치해야 합니다.
     const handlePaymentClick = async () => {
-        if(!(isLogined === "Y")) {
+        if (isLogined !== "Y") {
             setIsLoginModalOpen(true);
             return;
         }
@@ -99,21 +105,12 @@ const ZemShop = () => {
 
         const payInfoDto = {
             price: selectedItemData.price,
-            itemName: "zem_" + selectedItemData.zem
+            itemName: "zem_" + selectedItemData.zem,
+            userId: cookies.user.id
         };
 
-        // localStorage에서 가져오는 값은 문자열 형태로 이를 숫자로 반환해야 userId로 사용할 수 있다.
-        const userIdString = localStorage.getItem("user_id");
-        let userId;
-
-        if (userIdString !== null && userIdString !== undefined) {
-            userId = parseInt(userIdString, 10);
-        } else {
-            userId = 0;
-        }
-
         try {
-            const data = await postData(`/payment/ready?userId=${localStorage.getItem('user_id')}`, payInfoDto, "honjaya")
+            const { data } = await axios.post('http://localhost:3000/api/pay/ready', payInfoDto);
             const redirectUrl = data.redirectUrl;
             window.location.href = redirectUrl;
         } catch (error) {
