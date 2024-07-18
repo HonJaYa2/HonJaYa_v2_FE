@@ -83,12 +83,12 @@ app.prepare().then(() => {
             res.cookie('token', access_token, { httpOnly: false, secure: !dev, sameSite: 'lax' });
             res.cookie('user', JSON.stringify(userInfo), { httpOnly: false, secure: !dev, sameSite: 'lax' });
 
-            // 사용자 정보를 데이터베이스에 저장
-            db.query('INSERT INTO users (token, user) VALUES (?, ?) ON DUPLICATE KEY UPDATE token = VALUES(token), user = VALUES(user)', [access_token, JSON.stringify(userInfo)], (err) => {
-                if (err) {
-                    console.error('Error inserting user:', err);
-                }
-            });
+         // 사용자 정보를 데이터베이스에 저장
+        db.query('INSERT INTO users (id, token, user) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE token = VALUES(token), user = VALUES(user)', [userInfo.id, access_token, JSON.stringify(userInfo)], (err) => {
+            if (err) {
+                console.error('Error inserting user:', err);
+            }
+        });;
 
             console.log('Redirecting to /landing');
             res.redirect('/landing');  // 로그인 후 랜딩 페이지로 리디렉션

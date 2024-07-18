@@ -76,7 +76,7 @@ const ZemShop = () => {
    if (cookies.token && cookies.user) {
     dispatch(approve());  // Update login state in Redux
 }
-}, [cookies, searchParams, dispatch]);
+}, []);
 
 
     const handleItemClick = (id: number) => {

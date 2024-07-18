@@ -8,6 +8,15 @@ export const checkAuth = (): boolean => {
   return !!cookies.token; // 쿠키에 token이 있는지 확인하여 로그인 상태를 반환
 };
 
+// 파싱된 쿠키를 반환하는 함수
+export const getParsedCookies = () => {
+  const cookies = parseCookies();
+  return {
+    token: cookies.token,
+    user: cookies.user ? JSON.parse(cookies.user) : null,
+  };
+};
+
 // 카카오 로그아웃 함수
 export const kakaoLogout = () => {
   axios.get('/api/auth/logout')
