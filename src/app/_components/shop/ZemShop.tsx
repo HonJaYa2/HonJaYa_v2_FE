@@ -15,6 +15,7 @@ const ZemShop = () => {
     const [selectedItem, setSelectedItem] = useState<number | null>(null);
     const [isItemShopOpen, setIsItemShopOpen] = useState(false);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+    const [nickname, setNickname] = useState<string>('');
     const [userZem, setUserZem] = useState<number>(0);
     const [cookies] = useCookies(['token', 'user']);
     const searchParams = useSearchParams();
@@ -56,9 +57,11 @@ const ZemShop = () => {
                     }
 
                     setUserZem(response.data);
+                    setNickname(user?.properties?.nickname || ''); // 닉네임 설정
                 } catch (error) {
                     console.error('Error fetching user ZEM:', error);
                     setUserZem(0);
+                    setNickname(''); // 에러 발생 시 닉네임 초기화
                 }
             }
         };
@@ -155,7 +158,7 @@ const ZemShop = () => {
             </div>
 
             <div className="flex items-center justify-between bg-red-300 py-2 px-12 rounded-lg mb-4 max-w-5xl mx-auto relative">
-                <h2 className="text-4xl font-semibold font-jua">보유 ZEM :</h2>
+                <h2 className="text-4xl font-semibold font-jua">{nickname} 님의 보유 ZEM :</h2>
                 <div className="flex items-center space-x-2">
                     <span className="text-xl font-semibold">{userZem}</span>
                     <div className="text-pink-500" style={{ marginLeft: '-12px' }}>

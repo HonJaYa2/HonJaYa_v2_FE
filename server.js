@@ -75,7 +75,9 @@ app.prepare().then(() => {
                 },
             });
             const userInfo = userInfoResponse.data;
+            const nickname = userInfo.kakao_account.profile.nickname;
 
+            console.log('User Nickname:', nickname); // 닉네임 정보 로그
             console.log('User ID:', userInfo.id);
             console.log('Access Token:', access_token);
 
