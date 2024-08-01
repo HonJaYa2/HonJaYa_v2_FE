@@ -17,6 +17,7 @@ const ZemShop = () => {
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
     const [nickname, setNickname] = useState<string>('');
     const [userZem, setUserZem] = useState<number>(0);
+    const [inventory, setInventory] = useState<Record<number, number>>({});
     const [cookies] = useCookies(['token', 'user']);
     const searchParams = useSearchParams();
 
@@ -66,28 +67,57 @@ const ZemShop = () => {
             }
         };
 
+        const fetchInventory = async () => {
+            const user = cookies.user;
+            const userId = user?.id;
+
+            try {
+                const response = await axios.get(`http://localhost:3000/api/getInventory/${userId}`);
+                const inventoryData = response.data.reduce((acc: Record<number, number>, item: any) => {
+                    acc[item.item_id] = item.quantity;
+                    return acc;
+                }, {});
+                setInventory(inventoryData);
+            } catch (error) {
+                console.error('Error fetching user inventory:', error);
+                setInventory({});
+            }
+        };
+
         fetchZem();
+        fetchInventory();
 
         const paymentStatus = searchParams.get('payment');
         if (paymentStatus === 'success') {
             alert('결제가 성공적으로 완료되었습니다!');
             fetchZem(); // 결제 후 최신 Zem 수 가져오기
+            fetchInventory(); // 결제 후 최신 인벤토리 가져오기
         } else if (paymentStatus === 'fail') {
             alert('결제에 실패했습니다.');
         }
-   // Check if user is logged in
-   if (cookies.token && cookies.user) {
-    dispatch(approve());  // Update login state in Redux
-}
-}, []);
 
+        // Check if user is logged in
+        if (cookies.token && cookies.user) {
+            dispatch(approve());  // Update login state in Redux
+        }
+    }, [cookies, dispatch, searchParams]);
 
     const handleItemClick = (id: number) => {
         setSelectedItem(id);
     };
 
+    // Zem 업데이트 함수(사용자 아이템 구매 시 zem 차감)
+    const updateUserZem = (newZem: number) => {
+        setUserZem(newZem);
+    };
 
-    //isLogined가 제대로 작동하려면, 사용자가 로그인할 때 approve 액션을 디스패치하고, 로그아웃하거나 로그인 실패 시 deny 액션을 디스패치해야 합니다.
+    const updateUserInventory = (itemId: number, newQuantity: number) => {
+        setInventory((prevInventory) => ({
+            ...prevInventory,
+            [itemId]: newQuantity,
+        }));
+    };
+
     const handlePaymentClick = async () => {
         if (isLogined !== "Y") {
             setIsLoginModalOpen(true);
@@ -178,16 +208,16 @@ const ZemShop = () => {
                     >
                         <span className="text-red-500 font-bold">!!</span> 아이템 샵 둘러보기
                     </button>
-                    <style jsx>{`
-                        @keyframes shimmer {
+                    <style jsx>{
+                        `@keyframes shimmer {
                             30%, 100% {
                                 opacity: 1;
                             }
                             50% {
                                 opacity: 0.5;
                             }
-                        }
-                    `}</style>
+                        }`
+                    }</style>
                 </div>
             </div>
 
@@ -266,7 +296,7 @@ const ZemShop = () => {
                         >
                             &times;
                         </button>
-                        <ItemPurchase userZem={userZem} />
+                        <ItemPurchase userZem={userZem} onZemUpdate={updateUserZem} inventory={inventory} onInventoryUpdate={updateUserInventory} />
                     </div>
                 </div>
             )}

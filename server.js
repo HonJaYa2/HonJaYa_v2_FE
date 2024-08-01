@@ -20,7 +20,7 @@ const db = mysql.createConnection({
     host: 'localhost',
     user: 'root',
     password: 'root59',
-    database: 'zemshop'
+    database: 'zem_shop'
 });
 
 db.connect((err) => {
@@ -85,12 +85,12 @@ app.prepare().then(() => {
             res.cookie('token', access_token, { httpOnly: false, secure: !dev, sameSite: 'lax' });
             res.cookie('user', JSON.stringify(userInfo), { httpOnly: false, secure: !dev, sameSite: 'lax' });
 
-         // 사용자 정보를 데이터베이스에 저장
-        db.query('INSERT INTO users (id, token, user) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE token = VALUES(token), user = VALUES(user)', [userInfo.id, access_token, JSON.stringify(userInfo)], (err) => {
-            if (err) {
-                console.error('Error inserting user:', err);
-            }
-        });;
+            // 사용자 정보를 데이터베이스에 저장
+            db.query('INSERT INTO users (kakao_id, username, password, zem_balance) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE username = VALUES(username), password = VALUES(password)', [userInfo.id, nickname, '', 0], (err) => {
+                if (err) {
+                    console.error('Error inserting user:', err);
+                }
+            });
 
             console.log('Redirecting to /landing');
             res.redirect('/landing');  // 로그인 후 랜딩 페이지로 리디렉션
@@ -123,13 +123,13 @@ app.prepare().then(() => {
     // 사용자의 Zem 수를 가져오는 API 엔드포인트
     server.get('/api/getZem/:userId', (req, res) => {
         const userId = req.params.userId;
-        db.query('SELECT zem FROM users WHERE id = ?', [userId], (err, results) => {
+        db.query('SELECT zem_balance FROM users WHERE kakao_id = ?', [userId], (err, results) => {
             if (err) {
                 console.error('Error fetching ZEM:', err);
                 res.status(500).json({ error: 'Error fetching ZEM' });
             } else {
                 if (results.length > 0) {
-                    res.json(results[0].zem);
+                    res.json(results[0].zem_balance);
                 } else {
                     console.error('User not found:', userId);
                     res.status(404).json({ error: 'User not found' });
@@ -210,7 +210,7 @@ app.prepare().then(() => {
             const userId = approvedData.partner_user_id;
             const zemAmount = parseInt(approvedData.amount.total, 10); // 예시: 결제 금액을 Zem 수로 사용
 
-            db.query('UPDATE users SET zem = zem + ? WHERE id = ?', [zemAmount, userId], (err) => {
+            db.query('UPDATE users SET zem_balance = zem_balance + ? WHERE kakao_id = ?', [zemAmount, userId], (err) => {
                 if (err) {
                     console.error('Error updating ZEM:', err);
                     res.status(500).json({ error: 'Error updating ZEM' });
@@ -233,6 +233,115 @@ app.prepare().then(() => {
     server.get('/api/pay/cancel', (req, res) => {
         res.status(200).json({ message: 'Payment canceled' });
     });
+
+    // 아이템 데이터를 가져오는 엔드포인트
+    server.get('/api/items', (req, res) => {
+        db.query('SELECT * FROM shop_items', (err, results) => {
+            if (err) {
+                console.error('Error fetching items:', err);
+                res.status(500).json({ error: 'Error fetching items' });
+            } else {
+                res.json(results);
+            }
+        });
+    });
+
+
+    // 아이템 구매 엔드포인트
+    server.post('/api/buyItem', (req, res) => {
+        const { userId, itemId } = req.body;
+    
+        // 아이템 정보 가져오기
+        db.query('SELECT * FROM shop_items WHERE id = ?', [itemId], (err, itemResults) => {
+            if (err) {
+                console.error('Error fetching item:', err);
+                return res.status(500).json({ error: 'Error fetching item' });
+            }
+    
+            if (itemResults.length === 0) {
+                return res.status(404).json({ error: 'Item not found' });
+            }
+    
+            const item = itemResults[0];
+    
+            // 사용자 정보 가져오기
+            db.query('SELECT id, zem_balance FROM users WHERE kakao_id = ?', [userId], (err, userResults) => {
+                if (err) {
+                    console.error('Error fetching user:', err);
+                    return res.status(500).json({ error: 'Error fetching user' });
+                }
+    
+                if (userResults.length === 0) {
+                    return res.status(404).json({ error: 'User not found' });
+                }
+    
+                const user = userResults[0];
+                const userZem = user.zem_balance;
+    
+                if (userZem < item.price) {
+                    return res.status(400).json({ error: 'Not enough ZEM' });
+                }
+    
+                // ZEM 차감
+                db.query('UPDATE users SET zem_balance = zem_balance - ? WHERE id = ?', [item.price, user.id], (err) => {
+                    if (err) {
+                        console.error('Error updating user ZEM:', err);
+                        return res.status(500).json({ error: 'Error updating user ZEM' });
+                    }
+    
+                    // 아이템이 이미 사용자 인벤토리에 있는지 확인
+                    db.query('SELECT * FROM user_inventory WHERE user_id = ? AND item_id = ?', [user.id, itemId], (err, inventoryResults) => {
+                        if (err) {
+                            console.error('Error fetching user inventory:', err);
+                            return res.status(500).json({ error: 'Error fetching user inventory' });
+                        }
+    
+                        if (inventoryResults.length > 0) {
+                            // 이미 인벤토리에 아이템이 있는 경우 수량 증가
+                            db.query('UPDATE user_inventory SET quantity = quantity + 1 WHERE user_id = ? AND item_id = ?', [user.id, itemId], (err) => {
+                                if (err) {
+                                    console.error('Error updating inventory:', err);
+                                    return res.status(500).json({ error: 'Error updating inventory' });
+                                }
+    
+                                res.json({ success: true, message: 'Item purchased successfully' });
+                            });
+                        } else {
+                            // 인벤토리에 아이템이 없는 경우 새로운 레코드 추가
+                            db.query('INSERT INTO user_inventory (user_id, item_id, quantity) VALUES (?, ?, 1)', [user.id, itemId], (err) => {
+                                if (err) {
+                                    console.error('Error adding to inventory:', err);
+                                    return res.status(500).json({ error: 'Error adding to inventory' });
+                                }
+    
+                                res.json({ success: true, message: 'Item purchased successfully' });
+                            });
+                        }
+                    });
+                });
+            });
+        });
+    });
+    
+
+// 사용자의 인벤토리를 가져오는 API 엔드포인트
+server.get('/api/getInventory/:userId', (req, res) => {
+    const userId = req.params.userId;
+    db.query('SELECT * FROM user_inventory WHERE user_id = ?', [userId], (err, results) => {
+        if (err) {
+            console.error('Error fetching inventory:', err);
+            res.status(500).json({ error: 'Error fetching inventory' });
+        } else {
+            if (results.length > 0) {
+                res.json(results);
+            } else {
+                console.error('Inventory not found for user:', userId);
+                res.status(404).json({ error: 'Inventory not found' });
+            }
+        }
+    });
+});
+
 
     server.all('*', (req, res) => {
         return handle(req, res);
