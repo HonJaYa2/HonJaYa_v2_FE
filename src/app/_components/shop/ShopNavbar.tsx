@@ -1,15 +1,16 @@
-// src/app/(route)/ShopNavbar.tsx
 'use client';
 
 import { useState, MouseEvent } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
+import PurchaseHistory from '@/app/(route)/modal/@modal/shop/PurchaseHistory'; // 추가된 import
 
 const GuideModal = dynamic(() => import('@/app/(route)/modal/@modal/shop/ShopGuide'), { ssr: false });
 
 const ShopNavbar = () => {
     const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+    const [isPurchaseHistoryOpen, setIsPurchaseHistoryOpen] = useState(false); // 추가된 state
 
     const openGuideModal = (event: MouseEvent<HTMLAnchorElement>) => {
         event.preventDefault();
@@ -18,6 +19,15 @@ const ShopNavbar = () => {
 
     const closeGuideModal = () => {
         setIsGuideModalOpen(false);
+    };
+
+    const openPurchaseHistory = (event: MouseEvent<HTMLAnchorElement>) => {
+        event.preventDefault();
+        setIsPurchaseHistoryOpen(true);
+    };
+
+    const closePurchaseHistory = () => {
+        setIsPurchaseHistoryOpen(false);
     };
 
     return (
@@ -30,9 +40,7 @@ const ShopNavbar = () => {
                     <span className='absolute left-28 text-blue-900 font-bold text-xl'>SHOP</span>
                 </div>
                 <div className='flex items-center space-x-8'>
-                    <Link href="/order-history" legacyBehavior>
-                        <a className='text-white font-semibold flex items-center hover:text-main-hover-color'>구매내역</a>
-                    </Link>
+                    <a href="#" onClick={openPurchaseHistory} className='text-white font-semibold flex items-center hover:text-main-hover-color'>구매내역</a>
                     <Link href="/mypage" legacyBehavior>
                         <a className='text-white font-semibold flex items-center hover:text-main-hover-color'>My page</a>
                     </Link>
@@ -46,6 +54,7 @@ const ShopNavbar = () => {
             </div>
 
             <GuideModal isOpen={isGuideModalOpen} onClose={closeGuideModal} />
+            <PurchaseHistory isOpen={isPurchaseHistoryOpen} onClose={closePurchaseHistory} /> {/* 추가된 모달 */}
         </>
     );
 }

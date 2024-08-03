@@ -53,20 +53,20 @@ const ItemPurchase: React.FC<ItemPurchaseProps> = ({ userZem, onZemUpdate, inven
 
     const handlePurchase = async () => {
         if (!selectedItem) return;
-
-        const userId = cookies.user.id;
-
+    
+        const kakaoId = cookies.user.id; // userId 대신 kakaoId 사용
+    
         try {
             const response = await axios.post('http://localhost:3000/api/buyItem', {
-                userId,
+                kakaoId, // userId 대신 kakaoId 사용
                 itemId: selectedItem.id,
             });
-
+    
             if (response.data.success) {
                 alert('아이템 구매가 완료되었습니다!');
                 const newZem = userZem - selectedItem.price;
                 onZemUpdate(newZem);
-
+    
                 const newQuantity = (inventory[selectedItem.id] || 0) + 1;
                 onInventoryUpdate(selectedItem.id, newQuantity);
             } else {
@@ -76,9 +76,10 @@ const ItemPurchase: React.FC<ItemPurchaseProps> = ({ userZem, onZemUpdate, inven
             console.error('Error purchasing item:', error);
             alert('아이템 구매에 실패했습니다.');
         }
-
+    
         closeModal();
     };
+    
 
     return (
         <div className="flex items-center justify-center bg-white p-4">

@@ -40,14 +40,14 @@ const ZemShop = () => {
         const fetchZem = async () => {
             const token = cookies.token;
             const user = cookies.user;
-            const userId = user?.id;
+            const kakaoId = user?.id;
 
             console.log('Cookies:', cookies); // 로그인 상태 및 쿠키 확인 로그
-            console.log('User ID:', userId); // 사용자 ID 확인 로그
+            console.log('Kakao ID:', kakaoId); // 사용자 ID 확인 로그
 
-            if (token && userId) {
+            if (token && kakaoId) {
                 try {
-                    const response = await axios.get(`http://localhost:3000/api/getZem/${userId}`, {
+                    const response = await axios.get(`http://localhost:3000/api/getZem/${kakaoId}`, {
                         headers: {
                             Authorization: `Bearer ${token}`,
                         },
@@ -69,10 +69,14 @@ const ZemShop = () => {
 
         const fetchInventory = async () => {
             const user = cookies.user;
-            const userId = user?.id;
+            const kakaoId = user?.id;
+            if (!kakaoId) {
+                console.error('User ID is undefined');
+                return;
+            }
 
             try {
-                const response = await axios.get(`http://localhost:3000/api/getInventory/${userId}`);
+                const response = await axios.get(`http://localhost:3000/api/getInventory/${kakaoId}`);
                 const inventoryData = response.data.reduce((acc: Record<number, number>, item: any) => {
                     acc[item.item_id] = item.quantity;
                     return acc;
@@ -139,7 +143,7 @@ const ZemShop = () => {
         const payInfoDto = {
             price: selectedItemData.price,
             itemName: "zem_" + selectedItemData.zem,
-            userId: cookies.user.id
+            kakaoId: cookies.user.id
         };
 
         try {

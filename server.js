@@ -121,9 +121,9 @@ app.prepare().then(() => {
     });
 
     // 사용자의 Zem 수를 가져오는 API 엔드포인트
-    server.get('/api/getZem/:userId', (req, res) => {
-        const userId = req.params.userId;
-        db.query('SELECT zem_balance FROM users WHERE kakao_id = ?', [userId], (err, results) => {
+    server.get('/api/getZem/:kakaoId', (req, res) => {
+        const kakaoId = req.params.kakaoId;
+        db.query('SELECT zem_balance FROM users WHERE kakao_id = ?', [kakaoId], (err, results) => {
             if (err) {
                 console.error('Error fetching ZEM:', err);
                 res.status(500).json({ error: 'Error fetching ZEM' });
@@ -131,8 +131,27 @@ app.prepare().then(() => {
                 if (results.length > 0) {
                     res.json(results[0].zem_balance);
                 } else {
-                    console.error('User not found:', userId);
+                    console.error('User not found:', kakaoId);
                     res.status(404).json({ error: 'User not found' });
+                }
+            }
+        });
+    });
+
+    // 사용자 인벤토리를 가져오는 API 엔드포인트 추가
+    server.get('/api/getInventory/:kakaoId', (req, res) => {
+        const kakaoId = req.params.kakaoId;
+        console.log('Fetching inventory for kakaoId:', kakaoId); // 로그 추가
+        db.query('SELECT * FROM user_inventory WHERE kakao_id = ?', [kakaoId], (err, results) => {
+            if (err) {
+                console.error('Error fetching inventory:', err);
+                res.status(500).json({ error: 'Error fetching inventory' });
+            } else {
+                if (results.length > 0) {
+                    res.json(results);
+                } else {
+                    console.error('Inventory not found for user:', kakaoId);
+                    res.status(404).json({ error: 'Inventory not found' });
                 }
             }
         });
@@ -141,12 +160,12 @@ app.prepare().then(() => {
     // 결제준비 엔드포인트
     server.post('/api/pay/ready', async (req, res) => {
         try {
-            const { itemName, price, userId } = req.body;
+            const { itemName, price, kakaoId } = req.body;
             const partner_order_id = `order_${new Date().getTime()}`; // partner_order_id 생성
             const data = {
                 cid: 'TC0ONETIME',
                 partner_order_id: partner_order_id,
-                partner_user_id: userId,
+                partner_user_id: kakaoId,
                 item_name: itemName,
                 quantity: 1,
                 total_amount: price,
@@ -170,7 +189,7 @@ app.prepare().then(() => {
 
             const { next_redirect_pc_url, tid } = response.data;
             res.cookie('tid', tid, { httpOnly: true });
-            res.cookie('partner_user_id', userId, { httpOnly: true });  // userId 쿠키에 저장
+            res.cookie('partner_user_id', kakaoId, { httpOnly: true });  // kakaoId 쿠키에 저장
             res.cookie('partner_order_id', partner_order_id, { httpOnly: true }); // partner_order_id 쿠키에 저장
             res.json({ redirectUrl: next_redirect_pc_url });
         } catch (error) {
@@ -190,7 +209,7 @@ app.prepare().then(() => {
                 cid: 'TC0ONETIME',
                 tid,
                 partner_order_id: partner_order_id,
-                partner_user_id: partner_user_id,  // 동일한 userId 사용
+                partner_user_id: partner_user_id,  // 동일한 kakaoId 사용
                 pg_token,
             };
 
@@ -207,15 +226,15 @@ app.prepare().then(() => {
 
             // 결제 완료 후 Zem 수 업데이트
             const approvedData = response.data;
-            const userId = approvedData.partner_user_id;
+            const kakaoId = approvedData.partner_user_id;
             const zemAmount = parseInt(approvedData.amount.total, 10); // 예시: 결제 금액을 Zem 수로 사용
 
-            db.query('UPDATE users SET zem_balance = zem_balance + ? WHERE kakao_id = ?', [zemAmount, userId], (err) => {
+            db.query('UPDATE users SET zem_balance = zem_balance + ? WHERE kakao_id = ?', [zemAmount, kakaoId], (err) => {
                 if (err) {
                     console.error('Error updating ZEM:', err);
                     res.status(500).json({ error: 'Error updating ZEM' });
                 } else {
-                    res.redirect(`http://localhost:3000/shop?payment=success&userId=${userId}`); // 결제 성공 후 클라이언트로 리디렉션
+                    res.redirect(`http://localhost:3000/shop?payment=success&kakaoId=${kakaoId}`); // 결제 성공 후 클라이언트로 리디렉션
                 }
             });
         } catch (error) {
@@ -246,11 +265,9 @@ app.prepare().then(() => {
         });
     });
 
-
-    // 아이템 구매 엔드포인트
     server.post('/api/buyItem', (req, res) => {
-        const { userId, itemId } = req.body;
-    
+        const { kakaoId, itemId } = req.body;
+        
         // 아이템 정보 가져오기
         db.query('SELECT * FROM shop_items WHERE id = ?', [itemId], (err, itemResults) => {
             if (err) {
@@ -265,7 +282,7 @@ app.prepare().then(() => {
             const item = itemResults[0];
     
             // 사용자 정보 가져오기
-            db.query('SELECT id, zem_balance FROM users WHERE kakao_id = ?', [userId], (err, userResults) => {
+            db.query('SELECT zem_balance FROM users WHERE kakao_id = ?', [kakaoId], (err, userResults) => {
                 if (err) {
                     console.error('Error fetching user:', err);
                     return res.status(500).json({ error: 'Error fetching user' });
@@ -275,22 +292,21 @@ app.prepare().then(() => {
                     return res.status(404).json({ error: 'User not found' });
                 }
     
-                const user = userResults[0];
-                const userZem = user.zem_balance;
+                const userZem = userResults[0].zem_balance;
     
                 if (userZem < item.price) {
                     return res.status(400).json({ error: 'Not enough ZEM' });
                 }
     
                 // ZEM 차감
-                db.query('UPDATE users SET zem_balance = zem_balance - ? WHERE id = ?', [item.price, user.id], (err) => {
+                db.query('UPDATE users SET zem_balance = zem_balance - ? WHERE kakao_id = ?', [item.price, kakaoId], (err) => {
                     if (err) {
                         console.error('Error updating user ZEM:', err);
                         return res.status(500).json({ error: 'Error updating user ZEM' });
                     }
     
                     // 아이템이 이미 사용자 인벤토리에 있는지 확인
-                    db.query('SELECT * FROM user_inventory WHERE user_id = ? AND item_id = ?', [user.id, itemId], (err, inventoryResults) => {
+                    db.query('SELECT * FROM user_inventory WHERE kakao_id = ? AND item_id = ?', [kakaoId, itemId], (err, inventoryResults) => {
                         if (err) {
                             console.error('Error fetching user inventory:', err);
                             return res.status(500).json({ error: 'Error fetching user inventory' });
@@ -298,23 +314,39 @@ app.prepare().then(() => {
     
                         if (inventoryResults.length > 0) {
                             // 이미 인벤토리에 아이템이 있는 경우 수량 증가
-                            db.query('UPDATE user_inventory SET quantity = quantity + 1 WHERE user_id = ? AND item_id = ?', [user.id, itemId], (err) => {
+                            db.query('UPDATE user_inventory SET quantity = quantity + 1 WHERE kakao_id = ? AND item_id = ?', [kakaoId, itemId], (err) => {
                                 if (err) {
                                     console.error('Error updating inventory:', err);
                                     return res.status(500).json({ error: 'Error updating inventory' });
                                 }
     
-                                res.json({ success: true, message: 'Item purchased successfully' });
+                                // 구매내역 추가
+                                db.query('INSERT INTO purchase_history (kakao_id, item_id, quantity) VALUES (?, ?, 1)', [kakaoId, itemId], (err) => {
+                                    if (err) {
+                                        console.error('Error adding to purchase history:', err);
+                                        return res.status(500).json({ error: 'Error adding to purchase history' });
+                                    }
+    
+                                    res.json({ success: true, message: 'Item purchased successfully' });
+                                });
                             });
                         } else {
                             // 인벤토리에 아이템이 없는 경우 새로운 레코드 추가
-                            db.query('INSERT INTO user_inventory (user_id, item_id, quantity) VALUES (?, ?, 1)', [user.id, itemId], (err) => {
+                            db.query('INSERT INTO user_inventory (kakao_id, item_id, quantity) VALUES (?, ?, 1)', [kakaoId, itemId], (err) => {
                                 if (err) {
                                     console.error('Error adding to inventory:', err);
                                     return res.status(500).json({ error: 'Error adding to inventory' });
                                 }
     
-                                res.json({ success: true, message: 'Item purchased successfully' });
+                                // 구매내역 추가
+                                db.query('INSERT INTO purchase_history (kakao_id, item_id, quantity) VALUES (?, ?, 1)', [kakaoId, itemId], (err) => {
+                                    if (err) {
+                                        console.error('Error adding to purchase history:', err);
+                                        return res.status(500).json({ error: 'Error adding to purchase history' });
+                                    }
+    
+                                    res.json({ success: true, message: 'Item purchased successfully' });
+                                });
                             });
                         }
                     });
@@ -323,25 +355,26 @@ app.prepare().then(() => {
         });
     });
     
+    
+    
 
-// 사용자의 인벤토리를 가져오는 API 엔드포인트
-server.get('/api/getInventory/:userId', (req, res) => {
-    const userId = req.params.userId;
-    db.query('SELECT * FROM user_inventory WHERE user_id = ?', [userId], (err, results) => {
-        if (err) {
-            console.error('Error fetching inventory:', err);
-            res.status(500).json({ error: 'Error fetching inventory' });
-        } else {
-            if (results.length > 0) {
-                res.json(results);
+    // 사용자의 구매내역을 가져오는 API 엔드포인트
+    server.get('/api/getPurchaseHistory/:kakaoId', (req, res) => {
+        const kakaoId = req.params.kakaoId;
+        db.query('SELECT * FROM purchase_history WHERE kakao_id = ?', [kakaoId], (err, results) => {
+            if (err) {
+                console.error('Error fetching purchase history:', err);
+                res.status(500).json({ error: 'Error fetching purchase history' });
             } else {
-                console.error('Inventory not found for user:', userId);
-                res.status(404).json({ error: 'Inventory not found' });
+                if (results.length > 0) {
+                    res.json(results);
+                } else {
+                    console.error('Purchase history not found for user:', kakaoId);
+                    res.status(404).json({ error: 'Purchase history not found' });
+                }
             }
-        }
+        });
     });
-});
-
 
     server.all('*', (req, res) => {
         return handle(req, res);
