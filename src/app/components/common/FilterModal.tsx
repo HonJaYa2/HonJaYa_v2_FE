@@ -3,8 +3,10 @@
 import { getData, postData, putData } from "@/app/api/api";
 import React, { startTransition, useEffect, useState } from "react";
 import ReactSlider from "react-slider";
+import { idealType } from "@/app/(route)/wait/page";
 
 interface Props {
+    setIdealData: (idealData: idealType) => void;
     setFilterOpen: () => void;
 }
 
@@ -71,8 +73,8 @@ export const MbtiSelector = ({ open, setOpen, selectedMbti, setSelectedMbti }: {
     );
 }
 
-const FilterModal = ({ setFilterOpen }: Props) => {
-    const [idealExist, setIdealExist] = useState<boolean>()
+const FilterModal = ({ setIdealData, setFilterOpen }: Props) => {
+    // const [idealExist, setIdealExist] = useState<boolean>()
     const [age, setAge] = useState<[number, number]>([20, 80]);
     const [height, setHeight] = useState<[number, number]>([100, 250]);
     const [weight, setWeight] = useState<[number, number]>([30, 150]);
@@ -82,7 +84,6 @@ const FilterModal = ({ setFilterOpen }: Props) => {
     const [selectedReligion, setSelectedReligion] = useState<string>("불교");
     const [selectedMbti, setSelectedMbti] = useState<string>("INFJ");
     const [smoke, setSmoke] = useState<boolean>();
-
     const setReligionSelectorOpen = () => {
         setOpenReligionSelector((prev) => !prev);
     }
@@ -92,26 +93,26 @@ const FilterModal = ({ setFilterOpen }: Props) => {
     }
 
     useEffect(()=> {
-        const getIdealType = async () => {
-            try {
-                const response = await getData(`/users/${localStorage.getItem('user_id')}/ideal`, "honjaya");
-                console.log(response);
-                if(response) {
-                    setIdealExist(true);
-                    setAge([response.data.minAge, response.data.maxAge]);
-                    setHeight([response.data.minHeight, response.data.maxHeight]);
-                    setWeight([response.data.minWeight, response.data.maxWeight]);
-                    setSelectedDrinkAmount(response.data.drinkAmount);
-                    setSelectedReligion(response.data.religion);
-                    setSelectedMbti(response.data.mbti);
-                    setSmoke(response.data.smoke);
-                }
-            } catch (e) {
-                console.log(e);
-                setIdealExist(false);
-            }
-        }
-        getIdealType();
+        //혼자야 서버에 저장되어있는 이상형 필터링 데이터 가져오기
+        // const getIdealType = async () => {
+        //     try {
+        //         const response = await getData(`/users/${localStorage.getItem('user_id')}/ideal`, "honjaya");
+        //         if(response) {
+        //             setIdealExist(true);
+        //             setAge([response.data.minAge, response.data.maxAge]);
+        //             setHeight([response.data.minHeight, response.data.maxHeight]);
+        //             setWeight([response.data.minWeight, response.data.maxWeight]);
+        //             setSelectedDrinkAmount(response.data.drinkAmount);
+        //             setSelectedReligion(response.data.religion);
+        //             setSelectedMbti(response.data.mbti);
+        //             setSmoke(response.data.smoke);
+        //         }
+        //     } catch (e) {
+        //         console.log(e);
+        //         setIdealExist(false);
+        //     }
+        // }
+        // getIdealType();
     },[])
 
     const handleIdealTypeSubmit = async () =>{
@@ -125,18 +126,20 @@ const FilterModal = ({ setFilterOpen }: Props) => {
             mbti: selectedMbti,
             religion: selectedReligion,
             drinkAmount: selectedDrinkAmount,
-            smoke: smoke
+            smoke: smoke as boolean
         }
-        try {
-            if(idealExist) {
-                await putData(`/users/${localStorage.getItem("user_id")}/ideal`, idealType, "honjaya");
-            } else {
-                await postData(`/users/${localStorage.getItem("user_id")}/ideal`, idealType, "honjaya");
-            }
-            setFilterOpen();
-        } catch (e) {
-            console.error(e);
-        }
+        setIdealData(idealType);
+        setFilterOpen();
+        // try {
+        //     if(idealExist) {
+        //         await putData(`/users/${localStorage.getItem("user_id")}/ideal`, idealType, "honjaya");
+        //     } else {
+        //         await postData(`/users/${localStorage.getItem("user_id")}/ideal`, idealType, "honjaya");
+        //     }
+        //     setFilterOpen();
+        // } catch (e) {
+        //     console.error(e);
+        // }
     }
 
     return (

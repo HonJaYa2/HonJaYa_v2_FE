@@ -20,6 +20,15 @@ const setHeaders = (dest: any) => {
 
 export const getData = async (endpoint: any, dest: any) => {
   try {
+    console.log(
+      `${
+        dest !== "groupChat"
+          ? dest === "honjaya"
+            ? `${baseURL}${endpoint}`
+            : `${kakaoURL}${endpoint}`
+          : `${groupChatURL}${endpoint}`
+      }`
+    )
     const response = await fetch(
       `${
         dest !== "groupChat"

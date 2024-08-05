@@ -9,16 +9,18 @@ import { FormData } from '@/app/(route)/signup/FormData';
 import useCurrentLocation from '@/app/utils/hooks/getCurrentLoaction';
 import { useGeolocated } from "react-geolocated";
 import { GoDesktopDownload } from 'react-icons/go';
+import { useDispatch } from 'react-redux';
+import { setProfile } from '@/state/actions';
 
 interface Step4Props {
-    nextStep: () => void;
+    // nextStep: () => void;
     prevStep: () => void;
     updateFormData: (data: Partial<FormData>) => void;
     formData: Partial<FormData>; // FormData 인터페이스에 맞게 설정 필요
-    setOpenSignUpModal: () => void;
+    setOpenSignUpModal: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export default function Step4({ nextStep, prevStep, updateFormData, formData, setOpenSignUpModal }: Step4Props) {
+export default function Step4({ prevStep, updateFormData, formData, setOpenSignUpModal }: Step4Props) {
     const [agree, setAgree] = useState<boolean>(false);
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [userId, setUserId] = useState<string>("");
@@ -27,6 +29,7 @@ export default function Step4({ nextStep, prevStep, updateFormData, formData, se
     const [onLoading, setOnLoading] = useState<boolean>(false);
 
     const { location, error, setCurrentLocation } = useCurrentLocation();
+    const dispatch = useDispatch();
     const router = useRouter();
     // const { coords, isGeolocationAvailable, isGeolocationEnabled } =
     //     useGeolocated({
@@ -39,21 +42,21 @@ export default function Step4({ nextStep, prevStep, updateFormData, formData, se
     //     });
 
 
-    // useEffect(() => {
-    //     const asyncronizedSetter = async () => {
-    //         await setCurrentLocation();
-    //     }
+    useEffect(() => {
+        const asyncronizedSetter = async () => {
+            await setCurrentLocation();
+        }
 
-    //     const setUserIdFirst = async () => {
-    //         const userData = await getData("/users/current", "honjaya");
-    //         setUserId(() => (userData.data.id))
-    //         setUserName(() => (userData.data.name))
-    //     }
-    //     if (formData.gender) localStorage.setItem("userGender", formData.gender);
+        // const setUserIdFirst = async () => {
+        //     const userData = await getData("/users/current", "honjaya");
+        //     setUserId(() => (userData.data.id))
+        //     setUserName(() => (userData.data.name))
+        // }
+        // if (formData.gender) localStorage.setItem("userGender", formData.gender);
 
-    //     asyncronizedSetter();
-    //     setUserIdFirst();
-    // }, []);
+        asyncronizedSetter();
+        // setUserIdFirst();
+    }, []);
 
     // useEffect(() => {
 
@@ -73,15 +76,23 @@ export default function Step4({ nextStep, prevStep, updateFormData, formData, se
                 smoke: formData.smoke,
                 address: formData.address
             }
-            const mongoData = {
-                memberId: userId,
-                name: userName,
-                gender: localStorage.getItem("userGender") === "남성" ? "MALE" : "FEMALE",
-            }
+            // const mongoData = {
+            //     memberId: userId,
+            //     name: userName,
+            //     gender: localStorage.getItem("userGender") === "남성" ? "MALE" : "FEMALE",
+            // }
             try {
-                await postData(`/users/${userId}/profile`, data, "honjaya")
-                await postData(`/user`, mongoData, "groupChat")
+                await fetch(`http://localhost:8080/user/setInfo`, {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({userId: localStorage.getItem("userId"), userData: data}),
+                })
+                // await postData(`/user`, mongoData, "groupChat")
                 setIsModalOpen(true);
+                // closeSignUpModal()
+
             } catch (error) {
                 // console.error('Failed to register user preferences:', error);
                 alert('취향 정보를 등록하는 데 실패했습니다.');
@@ -106,6 +117,7 @@ export default function Step4({ nextStep, prevStep, updateFormData, formData, se
 
     const getLocation = () => {
         setOnLoading(true);
+
         const kakaoLocation = getData(`/local/geo/coord2regioncode.json?x=${location.lon}&y=${location.lat}`, "kakao");
         // console.log(kakaoLocation);
         kakaoLocation.then((result) => {
@@ -148,11 +160,17 @@ export default function Step4({ nextStep, prevStep, updateFormData, formData, se
 
     const backToHome = () => {
         try {
-            localStorage.setItem("user_id", userId);
-            localStorage.setItem("username", userName);
-            router.push('/landing');
+            // localStorage.setItem("user_id", userId);
+            // localStorage.setItem("username", userName);
+            dispatch(setProfile())
+            // router.push('/landing');
+            // setIsModalOpen(false)
+            setOpenSignUpModal(false)
+            console.log('sibal')
+
         } catch (e) {
-            localStorage.removeItem("user_id");
+
+            // localStorage.removeItem("user_id");
             console.log(e);
         }
     };

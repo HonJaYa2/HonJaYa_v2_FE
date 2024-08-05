@@ -1,12 +1,12 @@
 'use client'
 
-import MatchingButton from "@/app/_components/buttons/MatchingButton";
-import FilterModal from "@/app/_components/common/FilterModal";
-import Navigationbar from "@/app/_components/common/Navigationbar";
+import MatchingButton from "@/app/components/buttons/MatchingButton";
+import FilterModal from "@/app/components/common/FilterModal";
+import Navigationbar from "@/app/components/common/Navigationbar";
 
-import ToggleSwitch from "@/app/_components/buttons/ToggleSwitch";
+import ToggleSwitch from "@/app/components/buttons/ToggleSwitch";
 import Image from "next/image";
-import TeamChatButtons from "@/app/_components/buttons/TeamChatButtons";
+import TeamChatButtons from "@/app/components/buttons/TeamChatButtons";
 //이미지 배열((매칭됨 && 시간 유효한 유저)들의 이미지 정보 배열)은 추후 fetching
 //얘를 
 import { useDispatch, useSelector } from "react-redux";
@@ -16,16 +16,29 @@ import { verifyUser } from "@/app/utils/verifyUser";
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getData } from "@/app/api/api";
-import GroupChatContainer from "@/app/_components/wait/team/GroupChatContainer";
-import SingleChatContainer from "@/app/_components/wait/single/SingleChatContainer";
-import MatchedUserModal from "@/app/_components/wait/MatchedUserModal";
+import GroupChatContainer from "@/app/components/wait/team/GroupChatContainer";
+import SingleChatContainer from "@/app/components/wait/single/SingleChatContainer";
+import MatchedUserModal from "@/app/components/wait/MatchedUserModal";
+
+export type idealType = {
+    maxAge: number,
+    minAge: number,
+    maxHeight: number,
+    minHeight: number,
+    maxWeight: number,
+    minWeight: number,
+    mbti: string,
+    religion: string,
+    drinkAmount: string,
+    smoke: boolean
+}
 
 const WaitingRoom = () => {
     const [groupObjects, setGroupObjects] = useState("");
     const [partnerObjects, setPartnerObjects] = useState("");
     const [currentPage, setCurrentPage] = useState<number>(0);
     const [objectsPerPage, setObjectsPerPage] = useState<number>(8);
-    const [open, setOpen] = useState<boolean>(false)
+    const [openFilterModal, setOpenFilterModal] = useState<boolean>(false)
     const [openTeamCreateModal, setOpenTeamCreateModal] = useState<boolean>(false)
     const [openTeamJoinModal, setOpenTeamJoinModal] = useState<boolean>(false)
     const [openGroupChatCreateModal, setOpenGroupChatCreateModal] = useState<boolean>(false)
@@ -34,6 +47,7 @@ const WaitingRoom = () => {
     const [onGroup, setOnGroup] = useState<boolean>(false);
     const [groupChatServerId, setGroupChatServerId] = useState<string>("");
     const [isLeader, setIsLeader] = useState<boolean>(false);
+    const [idealData, setIdealData] = useState<idealType>();
 
     const dispatch = useDispatch();
     const isTeam = useSelector((state: RootState) => state.modeCheck.isTeam)
@@ -163,14 +177,14 @@ const WaitingRoom = () => {
     };
 
     const setFilterOpen = () => {
-        const newState = !open;
-        setOpen(newState);
+        const newState = !openFilterModal;
+        setOpenFilterModal(newState);
     }
 
     return (
         <div className="flex h-screen w-screen flex-col items-center justify-between bg-white">
             <Navigationbar />
-            {matchingModalOpen && <MatchedUserModal/>}
+            {matchingModalOpen && <MatchedUserModal idealData={idealData as idealType}/>}
             <div style={{ height: "90%" }} className="w-full overflow-y-auto bg-balloons">
                 <div className="w-full h-auto min-h-4"></div>
                 <div className="w-full h-1/10 text-3xl font-jua flex items-end justify-around box-border pt-2 px-10">
@@ -186,10 +200,10 @@ const WaitingRoom = () => {
                                 <>
                                     <button
                                         onClick={setFilterOpen}
-                                        className={`${open ? 'hidden' : ''} bg-filter w-12 h-full rounded-md bg-cover bg-center`}>
+                                        className={`${openFilterModal ? 'hidden' : ''} bg-filter w-12 h-full rounded-md bg-cover bg-center`}>
                                     </button>
-                                    {open && (
-                                        <FilterModal setFilterOpen={setFilterOpen} />
+                                    {openFilterModal && (
+                                        <FilterModal setIdealData={setIdealData} setFilterOpen={setFilterOpen} />
                                     )}
                                 </>
                             ) : (

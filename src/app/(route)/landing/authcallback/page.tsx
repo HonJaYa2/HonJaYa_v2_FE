@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { approve, deny, setProfile } from "@/state/actions";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/state/reducers/rootReducer";
-import Loading from "@/app/_components/common/Loading";
+import Loading from "@/app/components/common/Loading";
 import { useRouter } from "next/navigation";
 import { getData, postData } from "@/app/api/api";
 import qs from 'qs';
@@ -12,6 +12,7 @@ import qs from 'qs';
 const AuthCallBack = () => {
     const [userId, setUserId] = useState<string>("");
     const [username, setUserName] = useState<string>("");
+    const [isSignedUp, setIsSignedUp] = useState<boolean>(false)
     const dispatch = useDispatch();
     const isLogined = useSelector((state: RootState) => state.loginCheck.isLogined);
     const router = useRouter();
@@ -19,12 +20,11 @@ const AuthCallBack = () => {
 
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
-        const accessToken = urlParams.get('access_token');
         const auth_code = urlParams.get('code');
+        const accessToken = localStorage.getItem('accesstoken');
         console.log(accessToken);
         console.log(auth_code);
         if (accessToken) {
-            localStorage.setItem('access_token', accessToken);
             const verifyUser = async () => {
                 try {
                     const userData = await getData("/users/current", "honjaya");
@@ -39,56 +39,37 @@ const AuthCallBack = () => {
                     // }
                 } catch (error) {
                     console.error("Error fetching user data:", error);
-                    router.push('/');
                 }
             };
             verifyUser();
+            router.push('/');
         } else {
-            const getToken = async () => {
-                console.log("ahahahahahahahahahahahaha")
+            const getUserInfoWithToken = async () => {
                 try {
-                    const response = await fetch("https://kauth.kakao.com/oauth/token", {
+                    const response = await fetch("http://localhost:8080/token", {
                         method: 'POST',
                         headers: {
-                          'Content-Type': 'application/x-www-form-urlencoded',
+                            'Content-Type': 'application/json',
                         },
-                        body: qs.stringify({
-                            grant_type: 'authorization_code',
-                            client_id: 'f80b172c8fd2c4405878f3227740f910',
-                            redirect_uri: 'http://localhost:3000/landing/authcallback',
-                            code: auth_code,                       
-                        }),
+                        body: JSON.stringify({ auth_code: auth_code}),
                     });
-                    console.log(response);
+                    const jsonResponse = await response.json();
+                    localStorage.setItem('access_token', jsonResponse.access_token);
+                    localStorage.setItem('userId', jsonResponse.userInfo.userId);
+                    // console.log(jsonResponse.access_token);
+                    // console.log(jsonResponse.userInfo);
+                    if(jsonResponse.userInfo.birthday) {
+                        dispatch(setProfile())
+                    }
+                    dispatch(approve())
+                    router.push('/landing')
                 } catch(e) {
                     console.log(e)
                 }
             }
-            getToken();
+            getUserInfoWithToken();
         }
     }, []);
-
-    useEffect(() => {
-        const getGender = async () => {
-            try {
-                const userData = await getData(`/users/${userId}/profile`, "honjaya");
-                localStorage.setItem("userGender", userData.data.gender);
-            } catch (error) {
-                console.log(error)
-            }
-        }
-            if (isLogined === "Y") {
-                localStorage.setItem("user_id", userId);
-                localStorage.setItem("username", username);
-                getGender();
-                dispatch(setProfile());
-            } 
-            // else if (isLogined === "N"){
-            //     router.push('/signup');
-            // }
-            router.push('/');
-
-    }, [isLogined]);
 
     return (
         <Loading />

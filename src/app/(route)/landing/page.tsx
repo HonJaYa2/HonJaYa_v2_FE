@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
-import Navigationbar from "@/app/_components/common/Navigationbar";
+import Navigationbar from "@/app/components/common/Navigationbar";
 import { useDispatch, useSelector } from "react-redux";
 import { approve } from "@/state/actions";
 import { RootState } from "@/state/reducers/rootReducer";
@@ -9,7 +9,7 @@ import { FEATURE_OF_HONJAYA } from "@/app/utils/assets/constants";
 import FeatureContainer from "../landing/FeatureContainer";
 import { verifyUser } from "@/app/utils/verifyUser";
 import { useCookies } from 'react-cookie';
-import SignUpModal from "@/app/_components/signup/SignUpModal";
+import SignUpModal from "@/app/components/signup/SignUpModal";
 import Typewriter from './Typewritter'; // Typewriter 컴포넌트 import
 
 const dataTexts = ["천생연분", "알콩달콩", "솔로탈출"];
@@ -24,6 +24,7 @@ const Landing: React.FC = () => {
 
   useEffect(() => {
     console.log(isLogined);
+    console.log(profileSet);
 
     // const clearAllCookies = () => {
     //   Object.keys(cookies).forEach(cookieName => {
@@ -39,13 +40,13 @@ const Landing: React.FC = () => {
       // clearAllCookies()
 
       if (verifyUser()) {
-        dispatch(approve());
+          dispatch(approve());
       }
     } else {
-
+      console.log(profileSet)
+      console.log(openSignUpModal)
       if(!profileSet && !openSignUpModal) setOpenSignUpModal(prev => !prev);
-    }
-
+    }   
   }, [isLogined, openSignUpModal])
 
   // useEffect(() => {
@@ -54,6 +55,10 @@ const Landing: React.FC = () => {
   //   }
   // }, [])
 
+  const closeSignUpModal = () => {
+    console.log("ssisibal")
+    setOpenSignUpModal(false)
+  }
 
   return (
     <div className="flex flex-col items-center justify-between bg-white">
@@ -135,7 +140,7 @@ const Landing: React.FC = () => {
             카카오 로그인
           </button>
         </div>
-        {openSignUpModal && <SignUpModal setOpenSignUpModal={() => setOpenSignUpModal}/>}
+        {openSignUpModal && <SignUpModal setOpenSignUpModal={setOpenSignUpModal}/>}
       </div>
     </div>
   );

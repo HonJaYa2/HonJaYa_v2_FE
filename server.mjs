@@ -77,12 +77,12 @@
 //해당 문법을 사용한 비동기 작업 중 발생한 에러를 제대로 잡기위해 
 //추가적인 라이브러리(express-async-errors) 설치가 필요
 //koa는 정식으로 async/await 문법이 지원됨
-const Koa = require('koa');
-const Router = require('koa-router');
-const bodyParser = require('koa-bodyparser');
-const mongoose = require('mongoose');
-const fetch = require('node-fetch');
-const qs = require('qs');
+import Koa from 'koa';
+import Router from 'koa-router';
+import bodyParser from 'koa-bodyparser';
+import mongoose from 'mongoose';
+import fetch from 'node-fetch';
+import qs from 'qs';
 
 const app = new Koa();
 const router = new Router();
