@@ -71,7 +71,7 @@ const PurchaseHistory: React.FC<PurchaseHistoryProps> = ({ isOpen, onClose }) =>
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white w-11/12 max-w-4xl p-6 shadow-lg relative">
+            <div className="bg-white w-11/12 max-w-4xl h-[80vh] p-6 shadow-lg relative">
                 <button
                     onClick={onClose}
                     className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-2xl"
@@ -79,7 +79,7 @@ const PurchaseHistory: React.FC<PurchaseHistoryProps> = ({ isOpen, onClose }) =>
                     &times;
                 </button>
                 <h1 className="text-4xl font-bold mb-4">구매 내역</h1>
-                <div className="grid grid-cols-1 gap-4">
+                <div className="h-[65vh] overflow-y-auto">
                     {purchaseHistory.map(purchase => (
                         <div key={purchase.id} className="border p-4 flex items-center">
                             <img src={getItemImage(purchase.item_id)} alt={getItemName(purchase.item_id)} className="w-16 h-16 mr-4" />

@@ -4,7 +4,6 @@ import { parseCookies, destroyCookie } from 'nookies';
 // 로그인 상태를 확인하는 함수
 export const checkAuth = (): boolean => {
   const cookies = parseCookies();
-  console.log('Parsed Cookies:', cookies); // 파싱된 쿠키 확인
   return !!cookies.token; // 쿠키에 token이 있는지 확인하여 로그인 상태를 반환
 };
 

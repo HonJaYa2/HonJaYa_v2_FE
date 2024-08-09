@@ -1,9 +1,12 @@
-const express = require('express');
-const axios = require('axios');
-const cookieParser = require('cookie-parser');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const next = require('next');
+import express from 'express';
+import axios from 'axios';
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import next from 'next';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import mysql from 'mysql2/promise';
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
@@ -13,375 +16,226 @@ const KAKAO_SECRET_KEY = 'DEV418F3416856E0F8D07D365ADD2E0B7387BDE3';
 const KAKAO_CLIENT_ID = '6d162d06e3d6478d7d70318a5a6e8735';
 const KAKAO_REDIRECT_URI = 'http://localhost:3000/api/auth/kakao/callback';
 
-// MySQL 연결 설정
-const mysql = require('mysql2');
-
-const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'root59',
-    database: 'zem_shop'
-});
-
-db.connect((err) => {
-    if (err) {
-        console.error('MySQL connection error:', err);
-        process.exit(1);
-    } else {
-        console.log('MySQL connected successfully.');
-    }
-});
-
-app.prepare().then(() => {
-    const server = express();
-    server.use(cookieParser());
-    server.use(bodyParser.json());
-
-    // CORS 설정 추가
-    server.use(cors({
-        origin: 'http://localhost:3000', // 클라이언트의 도메인
-        credentials: true // 쿠키를 포함한 요청을 허용
-    }));
-
-    // 카카오 로그인 엔드포인트
-    server.get('/api/auth/kakao', (req, res) => {
-        const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${KAKAO_CLIENT_ID}&redirect_uri=${KAKAO_REDIRECT_URI}`;
-        res.redirect(kakaoAuthUrl);
+async function init() {
+    // MySQL 연결 설정
+    const db = await mysql.createConnection({
+        host: 'localhost',
+        user: 'root',
+        password: 'root59',
+        database: 'zem_shop',
     });
 
-    server.get('/api/auth/kakao/callback', async (req, res) => {
-        const { code } = req.query;
-        try {
-            const response = await axios.post(
-                'https://kauth.kakao.com/oauth/token',
-                {},
-                {
-                    params: {
-                        grant_type: 'authorization_code',
-                        client_id: KAKAO_CLIENT_ID,
-                        redirect_uri: KAKAO_REDIRECT_URI,
-                        code,
-                    },
+    await db.connect();
+    console.log('MySQL connected successfully.');
+
+    app.prepare().then(() => {
+        const server = express();
+        server.use(cookieParser());
+        server.use(bodyParser.json());
+        const httpServer = createServer(server);
+        const io = new Server(httpServer);
+
+        // CORS 설정 추가
+        server.use(cors({
+            origin: 'http://localhost:3000',
+            credentials: true
+        }));
+
+        // 카카오 로그인 엔드포인트
+        server.get('/api/auth/kakao', (req, res) => {
+            const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${KAKAO_CLIENT_ID}&redirect_uri=${KAKAO_REDIRECT_URI}`;
+            res.redirect(kakaoAuthUrl);
+        });
+
+        // Socket.IO 연결 이벤트 처리
+        io.on('connection', (socket) => {
+            console.log('A user connected:', socket.id);
+
+            socket.on('send_message', (data) => {
+                io.emit('receive_message', data);
+            });
+
+            socket.on('disconnect', () => {
+                console.log('A user disconnected:', socket.id);
+            });
+        });
+
+        server.get('/api/auth/kakao/callback', async (req, res) => {
+            const { code } = req.query;
+            try {
+                const response = await axios.post(
+                    'https://kauth.kakao.com/oauth/token',
+                    {},
+                    {
+                        params: {
+                            grant_type: 'authorization_code',
+                            client_id: KAKAO_CLIENT_ID,
+                            redirect_uri: KAKAO_REDIRECT_URI,
+                            code,
+                        },
+                        headers: {
+                            'Content-type': 'application/x-www-form-urlencoded;charset=utf-8',
+                        },
+                    }
+                );
+
+                const { access_token } = response.data;
+                const userInfoResponse = await axios.get('https://kapi.kakao.com/v2/user/me', {
                     headers: {
+                        Authorization: `Bearer ${access_token}`,
+                    },
+                });
+                const userInfo = userInfoResponse.data;
+                const nickname = userInfo.kakao_account.profile.nickname;
+
+                res.cookie('token', access_token, { httpOnly: false, secure: !dev, sameSite: 'lax' });
+                res.cookie('user', JSON.stringify(userInfo), { httpOnly: false, secure: !dev, sameSite: 'lax' });
+
+                await db.query(
+                    'INSERT INTO users (kakao_id, username, password, zem_balance) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE username = VALUES(username), password = VALUES(password)',
+                    [userInfo.id, nickname, '', 0]
+                );
+
+                res.redirect('/landing');
+            } catch (error) {
+                console.error(error);
+                res.redirect('/?login=failed');
+            }
+        });
+
+
+        server.get('/api/auth/logout', async (req, res) => {
+            try {
+                const token = req.cookies.token;
+
+                await axios.post('https://kapi.kakao.com/v1/user/logout', {}, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
                         'Content-type': 'application/x-www-form-urlencoded;charset=utf-8',
                     },
-                }
-            );
+                });
 
-            const { access_token } = response.data;
-            const userInfoResponse = await axios.get('https://kapi.kakao.com/v2/user/me', {
-                headers: {
-                    Authorization: `Bearer ${access_token}`,
-                },
-            });
-            const userInfo = userInfoResponse.data;
-            const nickname = userInfo.kakao_account.profile.nickname;
+                res.clearCookie('token');
+                res.clearCookie('user');
+                res.redirect('/');
+            } catch (error) {
+                console.error('Error during logout:', error);
+                res.redirect('/?logout=failed');
+            }
+        });
 
-            console.log('User Nickname:', nickname); // 닉네임 정보 로그
-            console.log('User ID:', userInfo.id);
-            console.log('Access Token:', access_token);
-
-            // 사용자 정보와 토큰을 쿠키에 저장
-            res.cookie('token', access_token, { httpOnly: false, secure: !dev, sameSite: 'lax' });
-            res.cookie('user', JSON.stringify(userInfo), { httpOnly: false, secure: !dev, sameSite: 'lax' });
-
-            // 사용자 정보를 데이터베이스에 저장
-            db.query('INSERT INTO users (kakao_id, username, password, zem_balance) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE username = VALUES(username), password = VALUES(password)', [userInfo.id, nickname, '', 0], (err) => {
-                if (err) {
-                    console.error('Error inserting user:', err);
-                }
-            });
-
-            console.log('Redirecting to /landing');
-            res.redirect('/landing');  // 로그인 후 랜딩 페이지로 리디렉션
-        } catch (error) {
-            console.error(error);
-            res.redirect('/?login=failed');
-        }
-    });
-
-    server.get('/api/auth/logout', async (req, res) => {
-        try {
-            const token = req.cookies.token;
-
-            await axios.post('https://kapi.kakao.com/v1/user/logout', {}, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-type': 'application/x-www-form-urlencoded;charset=utf-8',
-                },
-            });
-
-            res.clearCookie('token');
-            res.clearCookie('user');
-            res.redirect('/');
-        } catch (error) {
-            console.error('Error during logout:', error);
-            res.redirect('/?logout=failed');
-        }
-    });
-
-    // 사용자의 Zem 수를 가져오는 API 엔드포인트
-    server.get('/api/getZem/:kakaoId', (req, res) => {
-        const kakaoId = req.params.kakaoId;
-        db.query('SELECT zem_balance FROM users WHERE kakao_id = ?', [kakaoId], (err, results) => {
-            if (err) {
-                console.error('Error fetching ZEM:', err);
-                res.status(500).json({ error: 'Error fetching ZEM' });
-            } else {
+        // 사용자의 Zem 수를 가져오는 API 엔드포인트
+        server.get('/api/getZem/:kakaoId', async (req, res) => {
+            const kakaoId = req.params.kakaoId;
+            try {
+                const [results] = await db.query('SELECT zem_balance FROM users WHERE kakao_id = ?', [kakaoId]);
                 if (results.length > 0) {
                     res.json(results[0].zem_balance);
                 } else {
-                    console.error('User not found:', kakaoId);
                     res.status(404).json({ error: 'User not found' });
                 }
+            } catch (err) {
+                console.error('Error fetching ZEM:', err);
+                res.status(500).json({ error: 'Error fetching ZEM' });
             }
         });
-    });
 
-    // 사용자 인벤토리를 가져오는 API 엔드포인트 추가
-    server.get('/api/getInventory/:kakaoId', (req, res) => {
-        const kakaoId = req.params.kakaoId;
-        console.log('Fetching inventory for kakaoId:', kakaoId); // 로그 추가
-        db.query('SELECT * FROM user_inventory WHERE kakao_id = ?', [kakaoId], (err, results) => {
-            if (err) {
-                console.error('Error fetching inventory:', err);
-                res.status(500).json({ error: 'Error fetching inventory' });
-            } else {
+        // 사용자 인벤토리를 가져오는 API 엔드포인트 추가
+        server.get('/api/getInventory/:kakaoId', async (req, res) => {
+            const kakaoId = req.params.kakaoId;
+            try {
+                const [results] = await db.query('SELECT * FROM user_inventory WHERE kakao_id = ?', [kakaoId]);
                 if (results.length > 0) {
                     res.json(results);
                 } else {
-                    console.error('Inventory not found for user:', kakaoId);
                     res.status(404).json({ error: 'Inventory not found' });
                 }
+            } catch (err) {
+                console.error('Error fetching inventory:', err);
+                res.status(500).json({ error: 'Error fetching inventory' });
             }
         });
-    });
 
-    // 결제준비 엔드포인트
-    server.post('/api/pay/ready', async (req, res) => {
-        try {
-            const { itemName, price, kakaoId } = req.body;
-            const partner_order_id = `order_${new Date().getTime()}`; // partner_order_id 생성
-            const data = {
-                cid: 'TC0ONETIME',
-                partner_order_id: partner_order_id,
-                partner_user_id: kakaoId,
-                item_name: itemName,
-                quantity: 1,
-                total_amount: price,
-                vat_amount: 0,
-                tax_free_amount: 0,
-                approval_url: 'http://localhost:3000/api/pay/approve',
-                fail_url: 'http://localhost:3000/api/pay/fail',
-                cancel_url: 'http://localhost:3000/api/pay/cancel',
-            };
-
-            const response = await axios.post(
-                'https://open-api.kakaopay.com/online/v1/payment/ready',
-                data,
-                {
-                    headers: {
-                        Authorization: `SECRET_KEY ${KAKAO_SECRET_KEY}`,
-                        'Content-Type': 'application/json',
-                    },
-                }
-            );
-
-            const { next_redirect_pc_url, tid } = response.data;
-            res.cookie('tid', tid, { httpOnly: true });
-            res.cookie('partner_user_id', kakaoId, { httpOnly: true });  // kakaoId 쿠키에 저장
-            res.cookie('partner_order_id', partner_order_id, { httpOnly: true }); // partner_order_id 쿠키에 저장
-            res.json({ redirectUrl: next_redirect_pc_url });
-        } catch (error) {
-            console.error('Error creating KakaoPay payment:', error);
-            res.status(500).json({ error: 'Failed to create KakaoPay payment' });
-        }
-    });
-
-    // 결제 승인 엔드포인트
-    server.get('/api/pay/approve', async (req, res) => {
-        const { pg_token } = req.query;
-        const tid = req.cookies.tid;
-        const partner_user_id = req.cookies.partner_user_id;
-        const partner_order_id = req.cookies.partner_order_id; // 쿠키에서 가져오기
-        try {
-            const data = {
-                cid: 'TC0ONETIME',
-                tid,
-                partner_order_id: partner_order_id,
-                partner_user_id: partner_user_id,  // 동일한 kakaoId 사용
-                pg_token,
-            };
-
-            const response = await axios.post(
-                'https://open-api.kakaopay.com/online/v1/payment/approve',
-                data,
-                {
-                    headers: {
-                        Authorization: `SECRET_KEY ${KAKAO_SECRET_KEY}`,
-                        'Content-Type': 'application/json',
-                    },
-                }
-            );
-
-            // 결제 완료 후 Zem 수 업데이트
-            const approvedData = response.data;
-            const kakaoId = approvedData.partner_user_id;
-            const zemAmount = parseInt(approvedData.amount.total, 10); // 예시: 결제 금액을 Zem 수로 사용
-
-            db.query('UPDATE users SET zem_balance = zem_balance + ? WHERE kakao_id = ?', [zemAmount, kakaoId], (err) => {
-                if (err) {
-                    console.error('Error updating ZEM:', err);
-                    res.status(500).json({ error: 'Error updating ZEM' });
-                } else {
-                    res.redirect(`http://localhost:3000/shop?payment=success&kakaoId=${kakaoId}`); // 결제 성공 후 클라이언트로 리디렉션
-                }
-            });
-        } catch (error) {
-            console.error(error);
-            res.redirect('http://localhost:3000/shop?payment=fail'); // 결제 실패 후 클라이언트로 리디렉션
-        }
-    });
-
-    // 결제 실패 엔드포인트
-    server.get('/api/pay/fail', (req, res) => {
-        res.status(400).json({ message: 'Payment failed' });
-    });
-
-    // 결제 취소 엔드포인트
-    server.get('/api/pay/cancel', (req, res) => {
-        res.status(200).json({ message: 'Payment canceled' });
-    });
-
-    // 아이템 데이터를 가져오는 엔드포인트
-    server.get('/api/items', (req, res) => {
-        db.query('SELECT * FROM shop_items', (err, results) => {
-            if (err) {
+         // 아이템 목록을 가져오는 API 엔드포인트 추가
+         server.get('/api/items', async (req, res) => {
+            try {
+                const [results] = await db.query('SELECT * FROM shop_items');
+                res.json(results);
+            } catch (err) {
                 console.error('Error fetching items:', err);
                 res.status(500).json({ error: 'Error fetching items' });
-            } else {
-                res.json(results);
             }
         });
-    });
 
-    server.post('/api/buyItem', (req, res) => {
-        const { kakaoId, itemId } = req.body;
-        
-        // 아이템 정보 가져오기
-        db.query('SELECT * FROM shop_items WHERE id = ?', [itemId], (err, itemResults) => {
-            if (err) {
-                console.error('Error fetching item:', err);
-                return res.status(500).json({ error: 'Error fetching item' });
-            }
-    
-            if (itemResults.length === 0) {
-                return res.status(404).json({ error: 'Item not found' });
-            }
-    
-            const item = itemResults[0];
-    
-            // 사용자 정보 가져오기
-            db.query('SELECT zem_balance FROM users WHERE kakao_id = ?', [kakaoId], (err, userResults) => {
-                if (err) {
-                    console.error('Error fetching user:', err);
-                    return res.status(500).json({ error: 'Error fetching user' });
-                }
-    
-                if (userResults.length === 0) {
-                    return res.status(404).json({ error: 'User not found' });
-                }
-    
-                const userZem = userResults[0].zem_balance;
-    
-                if (userZem < item.price) {
-                    return res.status(400).json({ error: 'Not enough ZEM' });
-                }
-    
-                // ZEM 차감
-                db.query('UPDATE users SET zem_balance = zem_balance - ? WHERE kakao_id = ?', [item.price, kakaoId], (err) => {
-                    if (err) {
-                        console.error('Error updating user ZEM:', err);
-                        return res.status(500).json({ error: 'Error updating user ZEM' });
-                    }
-    
-                    // 아이템이 이미 사용자 인벤토리에 있는지 확인
-                    db.query('SELECT * FROM user_inventory WHERE kakao_id = ? AND item_id = ?', [kakaoId, itemId], (err, inventoryResults) => {
-                        if (err) {
-                            console.error('Error fetching user inventory:', err);
-                            return res.status(500).json({ error: 'Error fetching user inventory' });
-                        }
-    
-                        if (inventoryResults.length > 0) {
-                            // 이미 인벤토리에 아이템이 있는 경우 수량 증가
-                            db.query('UPDATE user_inventory SET quantity = quantity + 1 WHERE kakao_id = ? AND item_id = ?', [kakaoId, itemId], (err) => {
-                                if (err) {
-                                    console.error('Error updating inventory:', err);
-                                    return res.status(500).json({ error: 'Error updating inventory' });
-                                }
-    
-                                // 구매내역 추가
-                                db.query('INSERT INTO purchase_history (kakao_id, item_id, quantity) VALUES (?, ?, 1)', [kakaoId, itemId], (err) => {
-                                    if (err) {
-                                        console.error('Error adding to purchase history:', err);
-                                        return res.status(500).json({ error: 'Error adding to purchase history' });
-                                    }
-    
-                                    res.json({ success: true, message: 'Item purchased successfully' });
-                                });
-                            });
-                        } else {
-                            // 인벤토리에 아이템이 없는 경우 새로운 레코드 추가
-                            db.query('INSERT INTO user_inventory (kakao_id, item_id, quantity) VALUES (?, ?, 1)', [kakaoId, itemId], (err) => {
-                                if (err) {
-                                    console.error('Error adding to inventory:', err);
-                                    return res.status(500).json({ error: 'Error adding to inventory' });
-                                }
-    
-                                // 구매내역 추가
-                                db.query('INSERT INTO purchase_history (kakao_id, item_id, quantity) VALUES (?, ?, 1)', [kakaoId, itemId], (err) => {
-                                    if (err) {
-                                        console.error('Error adding to purchase history:', err);
-                                        return res.status(500).json({ error: 'Error adding to purchase history' });
-                                    }
-    
-                                    res.json({ success: true, message: 'Item purchased successfully' });
-                                });
-                            });
-                        }
-                    });
-                });
-            });
-        });
-    });
-    
-    
-    
-
-    // 사용자의 구매내역을 가져오는 API 엔드포인트
-    server.get('/api/getPurchaseHistory/:kakaoId', (req, res) => {
-        const kakaoId = req.params.kakaoId;
-        db.query('SELECT * FROM purchase_history WHERE kakao_id = ?', [kakaoId], (err, results) => {
-            if (err) {
-                console.error('Error fetching purchase history:', err);
-                res.status(500).json({ error: 'Error fetching purchase history' });
-            } else {
+        // 구매내역
+        server.get('/api/getPurchaseHistory/:kakaoId', async (req, res) => {
+            const kakaoId = req.params.kakaoId;
+            try {
+                const [results] = await db.query('SELECT * FROM purchase_history WHERE kakao_id = ?', [kakaoId]);
                 if (results.length > 0) {
                     res.json(results);
                 } else {
                     console.error('Purchase history not found for user:', kakaoId);
                     res.status(404).json({ error: 'Purchase history not found' });
                 }
+            } catch (err) {
+                console.error('Error fetching purchase history:', err);
+                res.status(500).json({ error: 'Error fetching purchase history' });
             }
         });
-    });
+        
 
-    server.all('*', (req, res) => {
-        return handle(req, res);
-    });
+        server.post('/api/buyItem', async (req, res) => {
+            const { kakaoId, itemId } = req.body;
 
-    server.listen(3000, (err) => {
-        if (err) throw err;
-        console.log('> Ready on http://localhost:3000');
+            try {
+                const [itemResults] = await db.query('SELECT * FROM shop_items WHERE id = ?', [itemId]);
+
+                if (itemResults.length === 0) {
+                    return res.status(404).json({ error: 'Item not found' });
+                }
+
+                const item = itemResults[0];
+                const [userResults] = await db.query('SELECT zem_balance FROM users WHERE kakao_id = ?', [kakaoId]);
+
+                if (userResults.length === 0) {
+                    return res.status(404).json({ error: 'User not found' });
+                }
+
+                const userZem = userResults[0].zem_balance;
+
+                if (userZem < item.price) {
+                    return res.status(400).json({ error: 'Not enough ZEM' });
+                }
+
+                await db.query('UPDATE users SET zem_balance = zem_balance - ? WHERE kakao_id = ?', [item.price, kakaoId]);
+
+                const [inventoryResults] = await db.query('SELECT * FROM user_inventory WHERE kakao_id = ? AND item_id = ?', [kakaoId, itemId]);
+
+                if (inventoryResults.length > 0) {
+                    await db.query('UPDATE user_inventory SET quantity = quantity + 1 WHERE kakao_id = ? AND item_id = ?', [kakaoId, itemId]);
+                } else {
+                    await db.query('INSERT INTO user_inventory (kakao_id, item_id, quantity) VALUES (?, ?, 1)', [kakaoId, itemId]);
+                }
+
+                await db.query('INSERT INTO purchase_history (kakao_id, item_id, quantity) VALUES (?, ?, 1)', [kakaoId, itemId]);
+
+                res.json({ success: true, message: 'Item purchased successfully' });
+            } catch (err) {
+                console.error('Error processing purchase:', err);
+                res.status(500).json({ error: 'Error processing purchase' });
+            }
+        });
+
+        server.all('*', (req, res) => {
+            return handle(req, res);
+        });
+
+        httpServer.listen(3000, (err) => {
+            if (err) throw err;
+            console.log('> Ready on http://localhost:3000');
+        });
     });
-});
+}
+
+init();

@@ -1,13 +1,30 @@
-'use client'
+'use client';
 
-export const verifyUser = () => {
-    //accessToken과 user_id 중 둘 중 하나라도 로컬 스토리지에 저장되어있지 않다면, 
-    //로컬 스토리지 초기화 후 false 반환
-    //둘 다 저장되어있는 경우 true 반환
-    if (!localStorage.getItem('access_token') || !localStorage.getItem('user_id')) {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('user_id');
-        return false;
+import Cookies from 'js-cookie';
+
+export const verifyUser = (): boolean => {
+  const token = Cookies.get('token');
+  const user = Cookies.get('user');
+  console.log('Token:', token);
+  console.log('User:', user);
+  if (!token || !user) {
+    Cookies.remove('token');
+    Cookies.remove('user');
+    return false;
+  }
+  return true;
+};
+
+export const getUserId = (): string | null => {
+  const user = Cookies.get('user');
+  if (user) {
+    try {
+      const userObj = JSON.parse(user);
+      return userObj.id;
+    } catch (e) {
+      console.error('Failed to parse user cookie:', e);
+      return null;
     }
-    return true;
-}
+  }
+  return null;
+};

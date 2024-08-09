@@ -1,6 +1,7 @@
 {
   "name": "honjaya-fe",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
   "scripts": {
     "dev": "node server.js",
@@ -16,6 +17,7 @@
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "express": "^4.19.2",
+    "js-cookie": "^3.0.5",
     "mysql2": "^3.10.2",
     "next": "^14.2.3",
     "next-auth": "^4.24.7",
@@ -29,9 +31,12 @@
     "react-modal": "^3.16.1",
     "react-redux": "^9.1.2",
     "react-slider": "^2.0.6",
+    "socket.io": "^4.7.5",
+    "socket.io-client": "^4.7.5",
     "sockjs-client": "^1.6.1"
   },
   "devDependencies": {
+    "@types/js-cookie": "^3.0.6",
     "@types/node": "^20",
     "@types/nookies": "^2.0.3",
     "@types/react": "^18",
