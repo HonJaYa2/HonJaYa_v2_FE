@@ -78,7 +78,7 @@ async function init() {
                         },
                     }
                 );
-
+        
                 const { access_token } = response.data;
                 const userInfoResponse = await axios.get('https://kapi.kakao.com/v2/user/me', {
                     headers: {
@@ -87,23 +87,143 @@ async function init() {
                 });
                 const userInfo = userInfoResponse.data;
                 const nickname = userInfo.kakao_account.profile.nickname;
-
-                res.cookie('token', access_token, { httpOnly: false, secure: !dev, sameSite: 'lax' });
-                res.cookie('user', JSON.stringify(userInfo), { httpOnly: false, secure: !dev, sameSite: 'lax' });
-
-                await db.query(
+        
+                // 사용자 정보를 데이터베이스에 저장하고 preferences_completed 값을 가져옵니다.
+                const [userResult] = await db.query(
                     'INSERT INTO users (kakao_id, username, password, zem_balance) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE username = VALUES(username), password = VALUES(password)',
                     [userInfo.id, nickname, '', 0]
                 );
-
-                res.redirect('/landing');
+        
+                const [userPreferences] = await db.query('SELECT preferences_completed FROM users WHERE kakao_id = ?', [userInfo.id]);
+        
+                // user 객체에 preferences_completed 값을 추가합니다.
+                userInfo.preferences_completed = userPreferences[0].preferences_completed;
+        
+                res.cookie('token', access_token, { httpOnly: false, secure: !dev, sameSite: 'lax' });
+                res.cookie('user', JSON.stringify(userInfo), { httpOnly: false, secure: !dev, sameSite: 'lax' });
+        
+                res.redirect('/landing?login=success');
             } catch (error) {
                 console.error(error);
                 res.redirect('/?login=failed');
             }
         });
 
+        // 결제준비 엔드포인트
+        server.post('/api/pay/ready', async (req, res) => {
+            try {
+                const { itemName, price, kakaoId } = req.body;
+                const partner_order_id = `order_${new Date().getTime()}`; // partner_order_id 생성
+                const data = {
+                    cid: 'TC0ONETIME',
+                    partner_order_id: partner_order_id,
+                    partner_user_id: kakaoId,
+                    item_name: itemName,
+                    quantity: 1,
+                    total_amount: price,
+                    vat_amount: 0,
+                    tax_free_amount: 0,
+                    approval_url: 'http://localhost:3000/api/pay/approve',
+                    fail_url: 'http://localhost:3000/api/pay/fail',
+                    cancel_url: 'http://localhost:3000/api/pay/cancel',
+                };
 
+                const response = await axios.post(
+                    'https://open-api.kakaopay.com/online/v1/payment/ready',
+                    data,
+                    {
+                        headers: {
+                            Authorization: `SECRET_KEY ${KAKAO_SECRET_KEY}`,
+                            'Content-Type': 'application/json',
+                        },
+                    }
+                );
+
+                const { next_redirect_pc_url, tid } = response.data;
+                res.cookie('tid', tid, { httpOnly: true });
+                res.cookie('partner_user_id', kakaoId, { httpOnly: true });  // kakaoId 쿠키에 저장
+                res.cookie('partner_order_id', partner_order_id, { httpOnly: true }); // partner_order_id 쿠키에 저장
+                res.json({ redirectUrl: next_redirect_pc_url });
+            } catch (error) {
+                console.error('Error creating KakaoPay payment:', error);
+                res.status(500).json({ error: 'Failed to create KakaoPay payment' });
+            }
+        });
+
+        // 결제 승인 엔드포인트
+        server.get('/api/pay/approve', async (req, res) => {
+            const { pg_token } = req.query;
+            const tid = req.cookies.tid;
+            const partner_user_id = req.cookies.partner_user_id;
+            const partner_order_id = req.cookies.partner_order_id; // 쿠키에서 가져오기
+            try {
+                const data = {
+                    cid: 'TC0ONETIME',
+                    tid,
+                    partner_order_id: partner_order_id,
+                    partner_user_id: partner_user_id,  // 동일한 kakaoId 사용
+                    pg_token,
+                };
+
+                const response = await axios.post(
+                    'https://open-api.kakaopay.com/online/v1/payment/approve',
+                    data,
+                    {
+                        headers: {
+                            Authorization: `SECRET_KEY ${KAKAO_SECRET_KEY}`,
+                            'Content-Type': 'application/json',
+                        },
+                    }
+                );
+
+                // 결제 완료 후 Zem 수 업데이트
+                const approvedData = response.data;
+                const kakaoId = approvedData.partner_user_id;
+                const zemAmount = parseInt(approvedData.amount.total, 10); // 예시: 결제 금액을 Zem 수로 사용
+
+                await db.query('UPDATE users SET zem_balance = zem_balance + ? WHERE kakao_id = ?', [zemAmount, kakaoId]);
+
+                res.redirect(`http://localhost:3000/shop?payment=success&kakaoId=${kakaoId}`); // 결제 성공 후 클라이언트로 리디렉션
+            } catch (error) {
+                console.error(error);
+                res.redirect('http://localhost:3000/shop?payment=fail'); // 결제 실패 후 클라이언트로 리디렉션
+            }
+        });
+        
+        // 취향정보 입력 여부 확인
+        server.get('/api/getPreferencesStatus/:kakaoId', async (req, res) => {
+            const kakaoId = req.params.kakaoId;
+            try {
+                const [results] = await db.query('SELECT preferences_completed FROM users WHERE kakao_id = ?', [kakaoId]);
+                if (results.length > 0) {
+                    res.json({ preferences_completed: results[0].preferences_completed });
+                } else {
+                    res.status(404).json({ error: 'User not found' });
+                }
+            } catch (err) {
+                console.error('Error fetching preferences status:', err);
+                res.status(500).json({ error: 'Error fetching preferences status' });
+            }
+        });
+        
+        
+        // 취향 정보를 저장하는 API 엔드포인트
+        server.post('/api/savePreferences', async (req, res) => {
+            const { kakaoId, preferences } = req.body;
+            try {
+                // 취향 정보 저장 로직 추가
+        
+                // 취향 정보 입력 완료 표시
+                await db.query('UPDATE users SET preferences_completed = ? WHERE kakao_id = ?', [true, kakaoId]);
+        
+                res.json({ success: true });
+            } catch (error) {
+                console.error('Error saving preferences:', error);
+                res.status(500).json({ error: 'Error saving preferences' });
+            }
+        });
+        
+        // 로그아웃
         server.get('/api/auth/logout', async (req, res) => {
             try {
                 const token = req.cookies.token;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import StepIndicator from '../stepIndicator';
-import NavigationButtons from './navigationbuttons/NavigationButtons';
+import StepIndicator from '../../stepIndicator';
+import NavigationButtons from '../navigationbuttons/NavigationButtons';
 
 interface Step1Props {
     nextStep: () => void;
@@ -27,8 +27,8 @@ const Step1: React.FC<Step1Props> = ({ nextStep, prevStep, updateFormData, formD
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen">
-            <div className="w-full max-w-xl p-12 bg-white shadow-md rounded-lg border-4 border-red-300">
+        <div className=" w-2/3 h-4/5 flex items-center justify-center">
+            <div className="w-full h-full flex flex-col justify-center items-center p-8 bg-white shadow-md rounded-lg border-4 border-red-300 ">
                 <StepIndicator currentStep={1} />
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <label htmlFor="birthday" className="block text-4xl text-center mb-40">생일은 언제인가요?</label>
