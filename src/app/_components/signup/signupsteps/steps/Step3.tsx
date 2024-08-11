@@ -1,21 +1,22 @@
 import { useState, useEffect } from 'react';
-import CustomNumberInput from '../../customNum';
+import CustomNumberInput from '../../../customNum';
 import StepIndicator from '../../stepIndicator';
 import NavigationButtons from '../navigationbuttons/NavigationButtons';
+import { FormData } from '@/app/(route)/signup/FormData';
 
 const mbtiTypes = ['INFJ', 'INFP', 'ENFJ', 'ENFP', 'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ', 'INTJ', 'INTP', 'ENTJ', 'ENTP', 'ISTP', 'ISFP', 'ESTP', 'ESFP'];
 const religionTypes = ['기독교', '불교', '천주교', '이슬람', '기타', '무교'];
 const drinkingTypes = ['알쓰', '평균', '술고래'];
 const smokeOrNot = ['흡연', '비흡연'];
 
-interface FormData {
-    height?: number;
-    weight?: number;
-    mbti?: string;
-    religion?: string;
-    smoke?: boolean;
-    drinkAmount?: string;
-}
+// interface FormData {
+//     height?: number;
+//     weight?: number;
+//     mbti?: string;
+//     religion?: string;
+//     smoke?: string;
+//     drinkAmount?: string;
+// }
 
 interface Step3Props {
     nextStep: () => void;
@@ -31,7 +32,8 @@ const Step3: React.FC<Step3Props> = ({ nextStep, prevStep, updateFormData, formD
     const [selectedDrinking, setSelectedDrinking] = useState<string | undefined>(formData.drinkAmount || undefined);
     const [height, setHeight] = useState<number>(formData.height || 170);
     const [weight, setWeight] = useState<number>(formData.weight || 70);
-    const [smoke, setSmoke] = useState<boolean>(formData.smoke || null);
+    const [smoke, setSmoke] = useState<string | undefined>(formData.smoke || undefined); 
+
 
     useEffect(() => {
         setSelectedMbti(formData.mbti || undefined);
@@ -147,11 +149,11 @@ const Step3: React.FC<Step3Props> = ({ nextStep, prevStep, updateFormData, formD
                                 <button
                                     key={smokeBool}
                                     type="button"
-                                    onClick={() => {setSmoke(()=>{return smokeBool === "흡연"? true : false})}}
-                                    className={`py-1 px-2 border-2 border-red-300 rounded-2xl text-sm ${smoke === (smokeBool === "흡연"? true : false) ? 'bg-red-300 text-white' : 'bg-white text-black'}`}
+                                    onClick={() => setSmoke(smokeBool)}
+                                    className={`py-1 px-2 border-2 border-red-300 rounded-2xl text-sm ${smoke === smokeBool ? 'bg-red-300 text-white' : 'bg-white text-black'}`}
                                 >
-                                    {smokeBool}
-                                </button>
+                                {smokeBool}
+                            </button>
                             ))}
                         </div>
                     </div>

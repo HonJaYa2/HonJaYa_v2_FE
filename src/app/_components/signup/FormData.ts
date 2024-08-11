@@ -1,4 +1,4 @@
-// src/app/(route)/signup/page.ts
+
 export interface FormData {
     name?: string;
     birthday?: string;

@@ -13,8 +13,8 @@ import { useSearchParams } from 'next/navigation';
 import { FiCheckCircle } from 'react-icons/fi';
 import { BsChatDots } from 'react-icons/bs';
 import { GiCycle } from 'react-icons/gi';
-import Notice from '@/app/_components/signupsteps/steps/Notice';
 import axios from 'axios';
+import SignUpModal from '@/app/_components/signup/SignUpModal';
 
 const dataTexts = ["천생연분", "알콩달콩", "솔로탈출" , "오늘부터 1일"];
 
@@ -24,7 +24,8 @@ const Landing: React.FC = () => {
     const [cookies, , removeCookie] = useCookies(['token', 'user']);
     const [alwaysVisible, setAlwaysVisible] = useState(true);
     const searchParams = useSearchParams();
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [openSignUpModal, setOpenSignUpModal] = useState(false)
+
 
     useEffect(() => {
         console.log('Cookies:', cookies);
@@ -50,7 +51,7 @@ const Landing: React.FC = () => {
             fetchPreferences().then(preferencesCompleted => {
               if (preferencesCompleted === 0) {
                   console.log('취향 정보를 입력해야 합니다.');
-                  setIsModalOpen(true);
+                  setOpenSignUpModal(true);
               } else {
                   console.log('이미 취향 정보를 입력했습니다.');
               }
@@ -90,6 +91,11 @@ const Landing: React.FC = () => {
         }
         return hearts;
     };
+
+  const closeSignUpModal = () => {
+    console.log("ssisibal")
+    setOpenSignUpModal(false)
+  }
 
     return (
         <div className="flex flex-col items-center justify-between bg-white">
@@ -192,12 +198,8 @@ const Landing: React.FC = () => {
                 {createHearts()}
             </div>
 
-            {/* 모달 표시 */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                    <Notice nextStep={() => console.log('Next step')} />
-                </div>
-            )}
+          {/* 모달 표시 */}
+          {openSignUpModal && <SignUpModal setOpenSignUpModal={setOpenSignUpModal}/>}
         </div>
     );
 };

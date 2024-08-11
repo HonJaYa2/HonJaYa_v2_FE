@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useState } from 'react';
-import Step1 from '../../_components/signupsteps/Step1';
-import Step2 from '../../_components/signupsteps/Step2';
-import Step3 from '../../_components/signupsteps/Step3';
-import Step4 from '../../_components/signupsteps/Step4';
+import Step1 from '../../_components/signup/Step1';
+import Step2 from '../../_components/signup/Step2';
+import Step3 from '../../_components/signup/Step3';
+import Step4 from '../../_components/signup/Step4';
 import { FormData } from '../signup/FormData';
 
 import { useDispatch, useSelector } from "react-redux";

@@ -189,7 +189,7 @@ async function init() {
                 res.redirect('http://localhost:3000/shop?payment=fail'); // 결제 실패 후 클라이언트로 리디렉션
             }
         });
-        
+
         // 취향정보 입력 여부 확인
         server.get('/api/getPreferencesStatus/:kakaoId', async (req, res) => {
             const kakaoId = req.params.kakaoId;
@@ -346,6 +346,56 @@ async function init() {
                 res.status(500).json({ error: 'Error processing purchase' });
             }
         });
+
+
+        // 예시: user/setInfo API에서 userId 대신 kakaoId 사용
+        server.post('/user/setInfo', async (req, res) => {
+            const { kakaoId, userData } = req.body;
+
+            try {
+                // 사용자 정보를 users_preferences 테이블에 저장
+                const query = `
+                    INSERT INTO users_preferences (kakao_id, birthday, gender, height, weight, mbti, religion, drink_amount, smoke, address)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE
+                        birthday = VALUES(birthday),
+                        gender = VALUES(gender),
+                        height = VALUES(height),
+                        weight = VALUES(weight),
+                        mbti = VALUES(mbti),
+                        religion = VALUES(religion),
+                        drink_amount = VALUES(drink_amount),
+                        smoke = VALUES(smoke),
+                        address = VALUES(address)
+                `;
+
+                await db.execute(query, [
+                    kakaoId,
+                    userData.birthday,
+                    userData.gender,
+                    userData.height,
+                    userData.weight,
+                    userData.mbti,
+                    userData.religion,
+                    userData.drinkAmount,
+                    userData.smoke,
+                    userData.address
+                ]);
+
+                // 사용자 정보 입력이 완료되었다면, users 테이블에서 preferences_completed 값을 1로 업데이트
+                const updatePrefCompletedQuery = `
+                    UPDATE users
+                    SET preferences_completed = 1
+                    WHERE kakao_id = ?
+                `;
+                await db.execute(updatePrefCompletedQuery, [kakaoId]); // 데이터베이스에서 실행시킴
+
+                res.status(200).json({ message: 'User preferences saved successfully.' });
+            } catch (error) {
+                console.error('Error saving user preferences:', error);
+                res.status(500).json({ error: 'Failed to save user preferences.' });
+            }
+        });    
 
         server.all('*', (req, res) => {
             return handle(req, res);
