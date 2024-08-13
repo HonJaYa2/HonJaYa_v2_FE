@@ -54,8 +54,13 @@ const AuthCallBack = () => {
                         body: JSON.stringify({ auth_code: auth_code}),
                     });
                     const jsonResponse = await response.json();
+                    console.log(jsonResponse);
+                    console.log(jsonResponse.userInfo.profileImage);
                     localStorage.setItem('access_token', jsonResponse.access_token);
                     localStorage.setItem('userId', jsonResponse.userInfo.userId);
+                    localStorage.setItem('userName', jsonResponse.userInfo.userName);
+                    localStorage.setItem('userProfileImage', jsonResponse.userInfo.profileImage);
+
                     // console.log(jsonResponse.access_token);
                     // console.log(jsonResponse.userInfo);
                     if(jsonResponse.userInfo.birthday) {

@@ -1,6 +1,6 @@
 "use client";
 
-import Navigationbar from "@/app/_components/common/Navigationbar";
+import Navigationbar from "@/app/components/common/Navigationbar";
 import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getData } from "@/app/api/api";

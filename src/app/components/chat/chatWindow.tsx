@@ -3,92 +3,63 @@ import ChatMessage from './chatMessage';
 import ChatInput from './chatInput';
 import SockJS from 'sockjs-client';
 import { CompatClient, Stomp } from '@stomp/stompjs';
-import { getData } from '@/app/api/api';
 import Navigationbar from '../common/Navigationbar';
+import socket, { io } from 'socket.io-client'
+
 
 interface ChatWindowProps {
-    roomId: any;
+    roomNum: Number;
     isGroupChat: boolean;
 }
 
 interface Message {
-    id: string;
+    // id: string;
     msg: string;
     sender: string;
     senderId: string;
     senderProfile: string;
-    receiver: string;
-    roomNum: number;
+    // receiver: string;
+    // roomNum: number;
     isOwnMessage: boolean;
     createAt: string;
 }
 
-const ChatWindow: React.FC<ChatWindowProps> = ({ roomId, isGroupChat }) => {
+const ChatWindow: React.FC<ChatWindowProps> = ({ roomNum, isGroupChat }) => {
     const [messages, setMessages] = useState<Message[]>([]);
-    const [profileImage, setProfileImage] = useState<string>("")
     const stompClient = useRef<CompatClient>();
-    const subscriptionRef = useRef<any>();
-    const roomNum = roomId.id
+    // const subscriptionRef = useRef<any>();
+    const socket = useRef<any>();
 
     useEffect(() => {
-        const getProfileImage = async () => {
-            try {
-                const response = await getData(
-                    `/users/${localStorage.getItem("user_id")}`,
-                    "honjaya"
-                );
-                console.log(response.data.profileImage);
-                setProfileImage(response.data.profileImage);
-            } catch (e) {
-                console.error(e);
-            }
-        };
-
-        const handleNewMessage = (message: any) => {
+        const handleNewMessage = (message: Message) => {
             const formattedMessage: Message = {
-                id: message.id,
+                // id: message.id,
                 msg: message.msg,
                 sender: message.sender,
                 senderId: message.senderId,
                 senderProfile: message.senderProfile,
-                receiver: message.receiver,
-                roomNum: message.roomNum,
-                isOwnMessage: message.senderId === localStorage.getItem("user_id"),
+                // receiver: message.receiver,
+                // roomNum: message.roomNum,
+                isOwnMessage: message.senderId === localStorage.getItem("userId"),
                 createAt: message.createAt,
             };
             console.log(formattedMessage);
             setMessages((prevMessages) => [...prevMessages, formattedMessage]);
         };
 
-        getProfileImage();
-
         if (isGroupChat) {
-            // const usernameElement = document.querySelector("#username");
-
-            // if (usernameElement) {
-            //     usernameElement.innerHTML = localStorage.getItem("username") || "unknown user";
-            // }
-
-            const eventSource = new EventSource(`http://localhost:8081/chat/roomId/${roomId}`);
-            eventSource.onmessage = (event) => {
-                try {
-                    const message = JSON.parse(event.data);
-                    handleNewMessage(message);
-                    console.log(message);
-                } catch (error) {
-                    console.error('Failed to parse message:', error);
-                }
-            };
-            eventSource.onerror = (error) => {
-                console.error('EventSource error:', error);
-            };
-            return () => {
-                eventSource.close();
-            };
+            // 그룹 채팅에 대한 로직이 필요하면 추가
         } else {
             const getMessageHistory = async () => {
                 try {
-                    const messages = await getData(`/chat/messages/${roomId}`, "honjaya");
+                    // const messages = await getData(`http://localhost:8080/chat/${roomNum}`, "honjaya");
+                    const response = await fetch('http://localhost:8080/chat/${roomNum}', {
+                        method: 'GET',
+                        headers: {
+                            "Content-Type": "application/json"
+                        }
+                    })
+                    const messages = await response.json();
                     messages.forEach((message: any) => {
                         handleNewMessage(message);
                     })
@@ -96,80 +67,82 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ roomId, isGroupChat }) => {
                 } catch (error) {
                     console.error(error);
                 }
-            }   
-            getMessageHistory();
-            const socket = new SockJS('http://localhost:8080/api/ws');
-            stompClient.current = Stomp.over(socket);
+            }
+            // getMessageHistory();
+            // WebSocket 연결 설정
+            socket.current = io('http://localhost:8080', {
+                path: '/ws/socket.io',  // 서버와 동일한 경로로 설정
+                transports: ['websocket'],
+            });
 
-            const connectCallback = (frame : any) => {
-                console.log('Connected: ' + frame);
+            // 연결 성공 시 방에 조인
+            socket.current.on('connect', () => {
+                console.log('Connected to server');
+                socket.current.emit('joinRoom', roomNum);
+            });
 
-                if (subscriptionRef.current) {
-                    subscriptionRef.current.unsubscribe();
-                }
+            // 메시지 수신 시 처리
+            socket.current.on('receiveMessage', (data: string) => {
+                const message = JSON.parse(data);
+                handleNewMessage(message);
+                console.log(`Room ${roomNum}: New message received: `, message);
+            });
 
-                subscriptionRef.current = stompClient.current?.subscribe(`/topic/chat/${roomId}`, (data) => {
-                    try {
-                        const message = JSON.parse(data.body);
-                        handleNewMessage(message);
-                        console.log(`${roomId}번 방에서 새로운 메시지 수신 : `, message);
-                    } catch (error) {
-                        console.error(`${roomId}번 방에서 메시지 수신 오류`, error);
-                    }
-                });
-            };
-            stompClient.current.connect({}, connectCallback);
-
+            // 컴포넌트 언마운트 시 WebSocket 연결 종료
             return () => {
-                if (subscriptionRef.current) {
-                    subscriptionRef.current.unsubscribe();
-                }
-                if (stompClient.current) {
-                    stompClient.current.disconnect();
-                }
-            };
+                socket.current?.disconnect();
+            };            // const socket = new SockJS('http://localhost:8081/ws/chat');
+            // stompClient.current = Stomp.over(socket);
+
+            // const connectCallback = (frame : any) => {
+            //     console.log('Connected: ' + frame);
+
+            //     if (subscriptionRef.current) {
+            //         subscriptionRef.current.unsubscribe();
+            //     }
+
+            //     subscriptionRef.current = stompClient.current?.subscribe(`/topic/chat/receive/${roomNum}`, (data) => {
+            //         try {
+            //             const message = JSON.parse(data.body);
+            //             handleNewMessage(message);
+            //             console.log(`${roomNum}번 방에서 새로운 메시지 수신 : `, message);
+            //         } catch (error) {
+            //             console.error(`${roomNum}번 방에서 메시지 수신 오류`, error);
+            //         }
+            //     });
+            // };
+
+            // stompClient.current.connect({}, connectCallback);
+
+            // return () => {
+            //     if (subscriptionRef.current) {
+            //         subscriptionRef.current.unsubscribe();
+            //     }
+            //     if (stompClient.current) {
+            //         stompClient.current.disconnect();
+            //     }
+            // };
         }
-    }, [roomId]);
+    }, [roomNum]);
 
     const handleSendMessage = async (message: string) => {
         if (isGroupChat) {
-            const newMessage = {
-                id: `${Date.now()}`,
-                msg: message,
-                sender: localStorage.getItem("username"),
-                senderId: localStorage.getItem("user_id"),
-                senderProfile: profileImage,
-                // receiver: "", // 수신자 이름 필요
-                roomId: roomId,
-                isOwnMessage: true,
-                createAt: new Date().toISOString(),
-            };
-            try {
-                await fetch("http://localhost:8081/chat", { // 때에따라 바꾸자 8080->8081로 현재 변경
-                    method: "POST",
-                    body: JSON.stringify(newMessage),
-                    headers: {
-                        "Content-Type": "application/json; charset=utf-8"
-                    }
-                });
-                console.log(newMessage)
-            } catch (error) {
-                console.error('Failed to send message:', error);
-            }
+            // 그룹 채팅에 대한 메시지 전송 로직이 필요하면 추가
         } else {
             const newMessage = {
-                type: "CHAT",
                 msg: message,
-                sender: localStorage.getItem("username"),
-                senderId: localStorage.getItem("user_id"),
-                senderProfile: profileImage,
-                roomNum: roomId,
-                isOwnMessage: true,
+                sender: localStorage.getItem("userName"),
+                senderId: localStorage.getItem("userId"),
+                senderProfile: localStorage.getItem("userProfileImage"),
+                roomNum: roomNum,
                 createAt: new Date().toISOString(),
             };
             try {
+                console.log(localStorage.getItem("userProfileImage"))
                 console.log(JSON.stringify(newMessage));
-                stompClient.current?.send(`/app/chat.send/${roomId}`, {}, JSON.stringify(newMessage));
+                socket.current?.emit('sendMessage', JSON.stringify(newMessage));
+
+                // stompClient.current?.send(`/topic/chat/send/${roomNum}`, {}, JSON.stringify(newMessage));
             } catch (error) {
                 console.error('Failed to send message:', error);
             }
@@ -178,12 +151,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ roomId, isGroupChat }) => {
 
     return (
         <div className="flex flex-col h-full">
-            <Navigationbar/>
+            <Navigationbar />
             <div id="chat-box" className="flex-grow overflow-y-auto p-4">
                 {messages.length === 0 ? (
                     <div className="text-center text-gray-500">No messages yet</div>
                 ) : (
-
                     messages.map((msg, index) => {
                         const nextMsg = messages[index + 1]; // 다음 메시지
                         const isLast =

@@ -1,14 +1,15 @@
 'use client'
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
-import SockJS from 'sockjs-client';
-import { CompatClient, Stomp } from '@stomp/stompjs';
-import { postData } from '@/app/api/api';
+// import SockJS from 'sockjs-client';
+// import { CompatClient, Stomp } from '@stomp/stompjs';
+// import { postData } from '@/app/api/api';
 import { useDispatch } from 'react-redux';
 import { setMatchingModalClose } from '@/state/actions';
 import MatchingModal from './MatchingModal';
 import { idealType } from '@/app/(route)/wait/page';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 interface Props {
     idealData: idealType;
@@ -31,13 +32,14 @@ type UserInfo = {
 
 const MatchedUserModal = ({ idealData }: Props) => {
     const dispatch = useDispatch();
-    const [matchedUserId, setMatchedUserId] = useState<String>();
+    const [matchedUserId, setMatchedUserId] = useState<Number>();
+    const [roomNum, setRoomNum] = useState<Number>();
     const [openMatchingModal, setOpenMatchingModal] = useState(false);
     const [userInfo, setUserInfo] = useState<UserInfo>()
     // const [userId, setUserId] = useState(localStorage.getItem('user_id'));
     // const stompClientRef = useRef<CompatClient>();
     // const subscriptionRef = useRef<any>();
-
+    const router = useRouter();
     useEffect(() => {
         // if (!openMatchingModal && !userInfo) {
         //     setOpenMatchingModal(() => true);
@@ -122,6 +124,10 @@ const MatchedUserModal = ({ idealData }: Props) => {
         setOpenMatchingModal(newState);
     }
 
+    const goToChatPage = () => {
+        router.push(`/chat/${roomNum}`);
+    }
+
     return (
         <div className="z-20 w-full h-full flex justify-center items-center fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm">
             <div className=" w-6/10 h-7/10 flex flex-col items-center justify-center bg-white border-main-color border-4 rounded-md">
@@ -143,7 +149,7 @@ const MatchedUserModal = ({ idealData }: Props) => {
                     <div className='w-2/5 h-full border-2 rounded-md border-main-color'>
                         {/* <Image
                             src={userInfo?.profileImage as string}
-                            alt="matchedUser_profile_image"
+                            alt="matchedUserProfileImage"
                             layout="fill"
                             objectFit="cover"
                         /> */}
@@ -162,7 +168,7 @@ const MatchedUserModal = ({ idealData }: Props) => {
                     </div>
                 </div>
                 <div className="w-4/5 h-2/10  flex flex-col justify-around items-center box-border p-1">
-                    <button type="button" className="w-1/2 h-4/10 font-jua text-lg text-white shadow-sm bg-gradient-to-r from-main-color to-orange-300 rounded-full hover:ring-4 hover:ring-red-100 active:bg-gradient-to-bl">
+                    <button type="button" onClick={goToChatPage} className="w-1/2 h-4/10 font-jua text-lg text-white shadow-sm bg-gradient-to-r from-main-color to-orange-300 rounded-full hover:ring-4 hover:ring-red-100 active:bg-gradient-to-bl">
                         채팅방 입장하기
                     </button>
 
@@ -171,7 +177,7 @@ const MatchedUserModal = ({ idealData }: Props) => {
                     </button>
                 </div>
             </div>
-            {openMatchingModal && <MatchingModal idealData={idealData} handleMatchingModal={handleMatchingModal} setMatchedUserId={setMatchedUserId} />}
+            {openMatchingModal && <MatchingModal idealData={idealData} handleMatchingModal={handleMatchingModal} setRoomNum={setRoomNum} setMatchedUserId={setMatchedUserId} />}
         </div >
     );
 };

@@ -138,9 +138,9 @@ const WaitingRoom = () => {
         }
 
         if (isTeam) {
-            getGroupObjects();
+            // getGroupObjects();
         } else {
-            getPartnerObjects();
+            // getPartnerObjects();
         }
     }, [isMatchingModalOpened, isTeam])
 

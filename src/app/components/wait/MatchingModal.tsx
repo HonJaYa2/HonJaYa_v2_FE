@@ -11,12 +11,12 @@ import { idealType } from '@/app/(route)/wait/page';
 interface Props {
     idealData: idealType;
     handleMatchingModal : ()=>void
-    setMatchedUserId: (value: String)=>void
+    setRoomNum: (value: Number)=>void
+    setMatchedUserId: (value: Number)=>void
 }
 
-const MatchingModal = ({idealData, handleMatchingModal, setMatchedUserId}: Props) => {
+const MatchingModal = ({idealData, handleMatchingModal, setRoomNum, setMatchedUserId}: Props) => {
     const dispatch = useDispatch();
-    // const [matchedUserId, setMatchedUserId] = useState<String>();
     const [userId, setUserId] = useState(localStorage.getItem('userId'));
 
     useEffect(() => {
@@ -53,10 +53,11 @@ const MatchingModal = ({idealData, handleMatchingModal, setMatchedUserId}: Props
                   const message = JSON.parse(event.data);
           
                   if (message.type === 'match') {
-                    const response = JSON.stringify(message.matchedUserId)
-                    alert('매칭 성공: ' + response);
-                    setMatchedUserId(response);
-                    console.log(response)
+                    const userId = JSON.stringify(message.matchedUserId)
+                    const roomNum = JSON.stringify(message.roomNum)
+                    alert('매칭 성공: ' + userId);
+                    setMatchedUserId(parseInt(userId));
+                    setRoomNum(parseInt(roomNum));
                     ws.close();
                   } else if (message.type === 'timeout') {
                     alert('매칭 실패: 시간 초과');

@@ -15,10 +15,10 @@ interface ChatMessageProps {
     onDelete: () => void; // 삭제(아직 미구현)
 }
 
-const ChatMessage: React.FC<ChatMessageProps> = ({ message, sender, senderId, senderProfile, isOwnMessage, timestamp, isLast, onDelete }) => {
+const ChatMessage: React.FC<ChatMessageProps> = ({ message, isOwnMessage, sender, senderId, senderProfile, timestamp, isLast, onDelete }) => {
     const [isHovered, setIsHovered] = useState(false);
     const [isLiked, setIsLiked] = useState(false);
-
+    // const msgFromMe = (senderId == localStorage.getItem('userId'));
     const handleMouseEnter = () => {
         setIsHovered(true);
     };

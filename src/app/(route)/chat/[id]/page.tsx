@@ -30,7 +30,7 @@
 
 "use client";
 
-import ChatWindow from '@/app/_components/chat/chatWindow';
+import ChatWindow from '@/app/components/chat/chatWindow';
 import { FC } from 'react';
 import { usePathname } from 'next/navigation'; 
 import { useSelector } from "react-redux";
@@ -41,15 +41,15 @@ const ChatPage: FC = () => {
   
     
     const pathname = usePathname(); // 현재 경로를 가져옵니다.
-    const roomId = pathname.split('/').pop();
+    const roomNum = parseInt(pathname.split('/').pop() as string);
     
-    if (!roomId) {
-        return <div>Loading...</div>; // roomId가 아직 로드되지 않은 경우 로딩 상태를 표시합니다.
+    if (!roomNum) {
+        return <div>Loading...</div>; // roomNumr가 아직 로드되지 않은 경우 로딩 상태를 표시합니다.
     }
 
     return (
         <div className="flex flex-col h-screen">
-            <ChatWindow roomId={roomId} isGroupChat={isTeam} /> {/* roomId를 string으로 강제 변환 */}
+            <ChatWindow roomNum={roomNum} isGroupChat={isTeam} /> {/* roomNum를 string으로 강제 변환 */}
         </div>
     );
 };
