@@ -16,8 +16,9 @@ import { getData } from "@/app/api/api";
 import GroupChatContainer from "@/app/_components/wait/team/GroupChatContainer";
 import SingleChatContainer from "@/app/_components/wait/single/SingleChatContainer";
 import MatchedUserModal from "@/app/_components/wait/MatchedUserModal";
+import MatchingModal from "@/app/_components/wait/MatchingModal";
 
-export type idealType = {
+export type filterDataType = {
     maxAge: number,
     minAge: number,
     maxHeight: number,
@@ -26,9 +27,10 @@ export type idealType = {
     minWeight: number,
     mbti: string,
     religion: string,
-    drinkAmount: string,
-    smoke: boolean
+    drink_amount: string,
+    smoke: string;
 }
+
 
 const WaitingRoom = () => {
     const [groupObjects, setGroupObjects] = useState<any[]>([]);
@@ -44,7 +46,8 @@ const WaitingRoom = () => {
     const [onGroup, setOnGroup] = useState<boolean>(false);
     const [groupChatServerId, setGroupChatServerId] = useState<string>("");
     const [isLeader, setIsLeader] = useState<boolean>(false);
-    const [idealData, setIdealData] = useState<idealType>();
+    const [filterData, setFilterData] = useState<filterDataType | undefined>();
+    const [matchedUserId, setMatchedUserId] = useState<string | null>();
 
     const dispatch = useDispatch();
     const isTeam = useSelector((state: RootState) => state.modeCheck.isTeam);
@@ -107,6 +110,7 @@ const WaitingRoom = () => {
         }
         getGroupChatServerUser();
     }, [openTeamCreateModal, openTeamJoinModal]);
+    
 
     useEffect(() => {
         const getPartnerObjects = async () => {
@@ -159,6 +163,24 @@ const WaitingRoom = () => {
     const setFilterOpen = () => {
         setOpenFilterModal(!openFilterModal);
     };
+    
+    const handleMatchingModalClose = (newMatchedUserId: string | null = null) => {
+        console.log('Setting matchedUserId:', newMatchedUserId);
+        if (newMatchedUserId !== null) {
+            setMatchedUserId(newMatchedUserId);
+        } else {
+            dispatch({ type: 'CLOSE_MODAL' }); // 모달 닫기
+        }
+    };
+    
+    
+      // 여기서 matchedUserId가 변경될 때마다 콘솔에 로그가 찍힙니다.
+      useEffect(() => {
+        if (matchedUserId) {
+            console.log('MatchedUserModal should render now with ID:', matchedUserId);
+        }
+    }, [matchedUserId]);
+    
 
     // 임시 채팅 버튼 핸들러
     const handleChatButtonClick = () => {
@@ -169,7 +191,33 @@ const WaitingRoom = () => {
     return (
         <div className="flex h-screen w-screen flex-col items-center justify-between bg-white">
             <Navigationbar />
-            {matchingModalOpen && <MatchedUserModal idealData={idealData as idealType} />}
+            {matchingModalOpen && filterData && !matchedUserId && (
+    <MatchingModal
+        filterData={filterData}
+        handleMatchingModal={(matchedUserId: string | null) => {
+            if (matchedUserId) {
+                setMatchedUserId(matchedUserId);
+            }
+            handleMatchingModalClose(matchedUserId);
+        }}
+        setMatchedUserId={setMatchedUserId}
+    />
+)}
+
+
+
+             {matchedUserId && filterData && (
+    <MatchedUserModal
+    matchedUserId={matchedUserId}
+    filterData={filterData}
+    handleClose={() => {
+        console.log("MatchedUserModal closing");
+        setMatchedUserId(null);
+    }} 
+/>
+
+)}
+
             <div style={{ height: "90%" }} className="w-full overflow-y-auto bg-balloons">
                 <div className="w-full h-auto min-h-4"></div>
                 <div className="w-full h-1/10 text-3xl font-jua flex items-end justify-around box-border pt-2 px-10">
@@ -187,7 +235,7 @@ const WaitingRoom = () => {
                                     className={`${openFilterModal ? 'hidden' : ''} bg-filter w-12 h-full rounded-md bg-cover bg-center`}>
                                 </button>
                                 {openFilterModal && (
-                                    <FilterModal setIdealData={setIdealData} setFilterOpen={setFilterOpen} />
+                                    <FilterModal setFilterData={setFilterData} setFilterOpen={setFilterOpen} />
                                 )}
                             </>
                         ) : (
@@ -239,7 +287,7 @@ const WaitingRoom = () => {
                             setOpenAcceptMemberModal={() => setOpenAcceptMemberModal(prev => !prev)}
                             openTeamInfoModal={openTeamInfoModal}
                             setOpenTeamInfoModal={() => setOpenTeamInfoModal(prev => !prev)}
-                        /> : <MatchingButton />}
+                        /> : (filterData && <MatchingButton filterData={filterData} />)}
                 </div>
             </div>
             <button

@@ -25,6 +25,11 @@ async function init() {
         database: 'zem_shop',
     });
 
+    // 서버 시작 시 실행되는 초기화 코드
+    // is_waiting을 0으로 항상 초기화해논다.(그래야 매칭버튼을 누르면 1로 변경 후 변경된 자들끼리 매칭 가능)
+    db.execute('UPDATE users_preferences SET is_waiting = 0');
+
+
     await db.connect();
     console.log('MySQL connected successfully.');
 
@@ -45,19 +50,6 @@ async function init() {
         server.get('/api/auth/kakao', (req, res) => {
             const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${KAKAO_CLIENT_ID}&redirect_uri=${KAKAO_REDIRECT_URI}`;
             res.redirect(kakaoAuthUrl);
-        });
-
-        // Socket.IO 연결 이벤트 처리
-        io.on('connection', (socket) => {
-            console.log('A user connected:', socket.id);
-
-            socket.on('send_message', (data) => {
-                io.emit('receive_message', data);
-            });
-
-            socket.on('disconnect', () => {
-                console.log('A user disconnected:', socket.id);
-            });
         });
 
         server.get('/api/auth/kakao/callback', async (req, res) => {
@@ -395,7 +387,170 @@ async function init() {
                 console.error('Error saving user preferences:', error);
                 res.status(500).json({ error: 'Failed to save user preferences.' });
             }
-        });    
+        }); 
+
+
+
+        // 유저 매칭 대기상태 확인
+        server.post('/api/setWaitingState', async (req, res) => {
+            const { kakaoId, isWaiting } = req.body;
+            try {
+                await db.query('UPDATE users_preferences SET is_waiting = ? WHERE kakao_id = ?', [isWaiting, kakaoId]);
+                res.status(200).json({ success: true });
+            } catch (error) {
+                console.error('Failed to set waiting state:', error);
+                res.status(500).json({ error: 'Failed to set waiting state' });
+            }
+        });
+        
+        
+// 매칭
+server.post('/user/match', async (req, res) => {
+    const { kakaoId, filterData } = req.body;
+
+    console.log('Matching request received with kakaoId:', kakaoId);
+    console.log('Filter data received:', filterData);
+
+    try {
+        const query = `
+            SELECT * FROM users_preferences
+            WHERE 
+                TIMESTAMPDIFF(YEAR, birthday, CURDATE()) BETWEEN ? AND ? AND
+                height BETWEEN ? AND ? AND
+                weight BETWEEN ? AND ? AND
+                mbti = ? AND
+                religion = ? AND
+                drink_amount = ? AND
+                smoke = ? AND
+                is_waiting = true  -- 매칭 대기 상태 확인
+        `;
+        const [rows] = await db.execute(query, [
+            filterData.minAge,
+            filterData.maxAge,
+            filterData.minHeight,
+            filterData.maxHeight,
+            filterData.minWeight,
+            filterData.maxWeight,
+            filterData.mbti,
+            filterData.religion,
+            filterData.drink_amount,
+            filterData.smoke
+        ]);
+
+        console.log('Matching users found:', rows);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: '조건에 맞는 사용자가 아직 존재하지 않습니다.' });
+        }
+
+        // 랜덤으로 한 명을 선택
+        const randomIndex = Math.floor(Math.random() * rows.length);
+        const matchedUser = rows[randomIndex];
+
+        const [userInfo] = await db.execute(`SELECT id, kakao_id FROM users WHERE kakao_id = ?`, [matchedUser.kakao_id]);
+
+        if (userInfo.length === 0) {
+            return res.status(404).json({ error: '사용자 정보를 찾을 수 없습니다.' });
+        }
+
+        res.status(200).json({ matchedUser: userInfo[0] });
+    } catch (error) {
+        console.error('Error during user matching:', error);
+        res.status(500).json({ error: 'Failed to match user' });
+    }
+});
+
+
+        
+        server.get('/user/:id', async (req, res) => {
+            const userId = req.params.id;
+            try {
+                const query = `
+                    SELECT * FROM users_preferences
+                    WHERE id = ?
+                `;
+                const [rows] = await db.execute(query, [userId]);
+        
+                if (rows.length === 0) {
+                    return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' });
+                }
+        
+                const user = rows[0];
+                res.status(200).json(user);
+            } catch (error) {
+                console.error('Error fetching user info:', error);
+                res.status(500).json({ error: '사용자 정보를 가져오는 데 실패했습니다.' });
+            }
+        });
+
+        
+        // 채팅방 생성 API
+server.post('/api/createSingleChatRoom', async (req, res) => {
+    const { user1Id, user2Id } = req.body;
+    console.log(`Received create chat room request for users: ${user1Id} and ${user2Id}`);
+
+    // 사용자 ID를 정렬 : 서로 
+    const sortedIds = [user1Id, user2Id].sort();
+
+    try {
+        // 이미 존재하는 채팅방을 찾기
+        const findQuery = `
+            SELECT id FROM single_chat_rooms
+            WHERE (user1_id = ? AND user2_id = ?)
+            ORDER BY id ASC
+        `;
+        const [existingRooms] = await db.execute(findQuery, [sortedIds[0], sortedIds[1]]);
+
+        if (existingRooms.length > 0) {
+            // 가장 오래된 채팅방의 ID를 반환
+            const oldestRoomId = existingRooms[0].id;
+            return res.status(200).json({ SingleChatRoomId: oldestRoomId });
+        } else {
+            // 새로운 채팅방을 생성
+            const createQuery = `
+                INSERT INTO single_chat_rooms (user1_id, user2_id)
+                VALUES (?, ?)
+            `;
+            const [result] = await db.execute(createQuery, [sortedIds[0], sortedIds[1]]);
+
+            const SingleChatRoomId = result.insertId;
+            res.status(200).json({ SingleChatRoomId });
+        }
+    } catch (error) {
+        console.error('Failed to create or find chat room:', error);
+        res.status(500).json({ error: 'Failed to create or find chat room' });
+    }
+});
+
+
+
+        
+
+        // 1:1 채팅방 접근
+        server.get('/chat/single/:roomId', (req, res) => {
+            const { roomId } = req.params;
+            app.render(req, res, '/chat/single', { roomId });
+        });
+
+        // Socket.IO 설정
+        io.on('connection', (socket) => {
+            console.log('A user connected:', socket.id);
+
+            socket.on('joinRoom', (roomId) => {
+                socket.join(roomId);
+                console.log(`User joined room ${roomId}`);
+            });
+
+            socket.on('sendMessage', (data) => {
+                io.to(data.roomId).emit('receiveMessage', data);
+            });
+
+            socket.on('disconnect', () => {
+                console.log('User disconnected:', socket.id);
+            });
+        });
+
+        
 
         server.all('*', (req, res) => {
             return handle(req, res);

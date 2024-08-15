@@ -1,23 +1,34 @@
 'use client'
 
-// import { getData, postData, putData } from "@/app/api/api";
-import React, { startTransition, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import ReactSlider from "react-slider";
-import { idealType } from "@/app/(route)/wait/page";
+
+interface filterDataType {
+    maxAge: number,
+    minAge: number,
+    maxHeight: number,
+    minHeight: number,
+    maxWeight: number,
+    minWeight: number,
+    mbti: string,
+    religion: string,
+    drink_amount: string,
+    smoke: string; 
+}
 
 interface Props {
-    setIdealData: (idealData: idealType) => void;
+    setFilterData: (filterData: filterDataType) => void;
     setFilterOpen: () => void;
 }
 
-const Religions = ["불교", "기독교", "천주교", "원불교"];
+const Religions = ["불교", "기독교", "천주교", "원불교", "무교"];
 const MbtiTypes = ['INFJ', 'INFP', 'ENFJ', 'ENFP', 'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ', 'INTJ', 'INTP', 'ENTJ', 'ENTP', 'ISTP', 'ISFP', 'ESTP', 'ESFP'];
 const drinkingAmount = ["알쓰", "평균", "술고래"];
 const smokeOrNot = ['흡연', '비흡연'];
 
 export const ReligionSelector = ({ open, setOpen, selectedReligion, setSelectedReligion }: { open: boolean; setOpen: () => void; selectedReligion: string, setSelectedReligion: (religion: string) => void }) => {
     return (
-        <div className="w-4/5 z-30 mb-4" >
+        <div className="w-4/5 z-30 mb-4">
             <button
                 className="text-base w-full h-10 bg-main-color rounded-lg"
                 onClick={() => setOpen()}
@@ -25,11 +36,11 @@ export const ReligionSelector = ({ open, setOpen, selectedReligion, setSelectedR
                 {selectedReligion}
             </button>
             {open && (
-                <ul className="z-50 w-full h-28 bg-white animate-fade-in-down" style={{overflow: 'auto', WebkitOverflowScrolling: 'touch'}}>
+                <ul className="z-50 w-full h-28 bg-white animate-fade-in-down" style={{ overflow: 'auto', WebkitOverflowScrolling: 'touch' }}>
                     {Religions.map((religion, index) => (
                         <li
-                        className={`text-base w-full h-10 flex justify-center items-center hover:bg-red-100 ${religion === selectedReligion ? "bg-red-200" : "bg-white"}`}
-                        key={index}
+                            className={`text-base w-full h-10 flex justify-center items-center hover:bg-red-100 ${religion === selectedReligion ? "bg-red-200" : "bg-white"}`}
+                            key={index}
                             onClick={() => {
                                 setSelectedReligion(religion);
                                 setOpen();
@@ -73,8 +84,7 @@ export const MbtiSelector = ({ open, setOpen, selectedMbti, setSelectedMbti }: {
     );
 }
 
-const FilterModal = ({ setIdealData, setFilterOpen }: Props) => {
-    // const [idealExist, setIdealExist] = useState<boolean>()
+const FilterModal = ({ setFilterData, setFilterOpen }: Props) => {
     const [age, setAge] = useState<[number, number]>([20, 80]);
     const [height, setHeight] = useState<[number, number]>([100, 250]);
     const [weight, setWeight] = useState<[number, number]>([30, 150]);
@@ -83,7 +93,8 @@ const FilterModal = ({ setIdealData, setFilterOpen }: Props) => {
     const [openMbtiSelector, setOpenMbtiSelector] = useState<boolean>(false);
     const [selectedReligion, setSelectedReligion] = useState<string>("불교");
     const [selectedMbti, setSelectedMbti] = useState<string>("INFJ");
-    const [smoke, setSmoke] = useState<boolean>();
+    const [smoke, setSmoke] = useState<string>("비흡연"); // 기본값을 "비흡연"으로 설정
+
     const setReligionSelectorOpen = () => {
         setOpenReligionSelector((prev) => !prev);
     }
@@ -92,31 +103,8 @@ const FilterModal = ({ setIdealData, setFilterOpen }: Props) => {
         setOpenMbtiSelector((prev) => !prev);
     }
 
-    useEffect(()=> {
-        //혼자야 서버에 저장되어있는 이상형 필터링 데이터 가져오기
-        // const getIdealType = async () => {
-        //     try {
-        //         const response = await getData(`/users/${localStorage.getItem('user_id')}/ideal`, "honjaya");
-        //         if(response) {
-        //             setIdealExist(true);
-        //             setAge([response.data.minAge, response.data.maxAge]);
-        //             setHeight([response.data.minHeight, response.data.maxHeight]);
-        //             setWeight([response.data.minWeight, response.data.maxWeight]);
-        //             setSelectedDrinkAmount(response.data.drinkAmount);
-        //             setSelectedReligion(response.data.religion);
-        //             setSelectedMbti(response.data.mbti);
-        //             setSmoke(response.data.smoke);
-        //         }
-        //     } catch (e) {
-        //         console.log(e);
-        //         setIdealExist(false);
-        //     }
-        // }
-        // getIdealType();
-    },[])
-
-    const handleIdealTypeSubmit = async () =>{
-        const idealType = {
+    const handleFilterDataSubmit = async () => {
+        const filterData = {
             maxAge: age[1],
             minAge: age[0],
             maxHeight: height[1],
@@ -125,21 +113,12 @@ const FilterModal = ({ setIdealData, setFilterOpen }: Props) => {
             minWeight: weight[0],
             mbti: selectedMbti,
             religion: selectedReligion,
-            drinkAmount: selectedDrinkAmount,
-            smoke: smoke as boolean
+            drink_amount: selectedDrinkAmount,
+            smoke: smoke // smoke를 string으로 전달
         }
-        setIdealData(idealType);
+        console.log("Filter Data:", filterData); 
+        setFilterData(filterData);
         setFilterOpen();
-        // try {
-        //     if(idealExist) {
-        //         await putData(`/users/${localStorage.getItem("user_id")}/ideal`, idealType, "honjaya");
-        //     } else {
-        //         await postData(`/users/${localStorage.getItem("user_id")}/ideal`, idealType, "honjaya");
-        //     }
-        //     setFilterOpen();
-        // } catch (e) {
-        //     console.error(e);
-        // }
     }
 
     return (
@@ -170,7 +149,7 @@ const FilterModal = ({ setIdealData, setFilterOpen }: Props) => {
                 </div>
             </div>
 
-            <div className="flex flex-col justify-center jui w-4/5 mb-4">
+            <div className="flex flex-col justify-center w-4/5 mb-4">
                 <div className="text-center text-lg">키</div>
                 <ReactSlider
                     className="bg-white flex"
@@ -245,8 +224,8 @@ const FilterModal = ({ setIdealData, setFilterOpen }: Props) => {
                         <button
                             key={smokeBool}
                             type="button"
-                            onClick={() => setSmoke(smokeBool === "흡연")}
-                            className={`py-1 px-2 border-2 border-red-300 rounded-2xl text-sm ${smoke === (smokeBool === "흡연") ? 'bg-red-300 text-white' : 'bg-white text-black'}`}
+                            onClick={() => setSmoke(smokeBool)}
+                            className={`py-1 px-2 border-2 border-red-300 rounded-2xl text-sm ${smoke === smokeBool ? 'bg-red-300 text-white' : 'bg-white text-black'}`}
                         >
                             {smokeBool}
                         </button>
@@ -269,7 +248,7 @@ const FilterModal = ({ setIdealData, setFilterOpen }: Props) => {
             />
 
             <div className="flex justify-around w-4/5 mt-5">
-                <button onClick={handleIdealTypeSubmit} className="w-3/10 text-sm font-bold border-red-300 rounded-md shadow-sm bg-gradient-to-br from-red-300 via-red-200 to-white hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-red-100 dark:focus:ring-red-400">적용</button>
+                <button onClick={handleFilterDataSubmit} className="w-3/10 text-sm font-bold border-red-300 rounded-md shadow-sm bg-gradient-to-br from-red-300 via-red-200 to-white hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-red-100 dark:focus:ring-red-400">적용</button>
                 <button onClick={setFilterOpen} className="w-3/10 text-sm border-gray-600 rounded-md shadow-sm bg-gradient-to-br from-gray-500 via-gray-300 to-white hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-gray-200">취소</button>
             </div>
         </div>

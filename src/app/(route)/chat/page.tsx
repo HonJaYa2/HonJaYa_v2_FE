@@ -1,60 +1,48 @@
-"use client";
+'use client'; // 클라이언트 전용 컴포넌트임을 명시
+
 import React, { useEffect, useState } from 'react';
 import io from 'socket.io-client';
 import ChatMessage from '@/app/_components/chat/chatMessage';
 import ChatInput from '@/app/_components/chat/chatInput';
+import { useCookies } from 'react-cookie';
+import { useSearchParams } from 'next/navigation';
 
-const socket = io('http://localhost:3000'); 
+const socket = io('http://localhost:3000');
 
 const ChatPage = () => {
     const [messages, setMessages] = useState<any[]>([]);
-    const [userId] = useState<string>('user-id-placeholder');
-    const [userProfile] = useState<string>('profile-placeholder.jpg');
+    const [cookies] = useCookies(['user']);
+    const userId = cookies.user?.id || 'default-user-id';
+    const userProfile = cookies.user?.profileImage || 'profile-placeholder.jpg';
+
+    const searchParams = useSearchParams();
+    const roomId = searchParams.get('roomId'); // URL에서 roomId를 가져옵니다.
 
     useEffect(() => {
-        console.log('Registering socket event listener');
+        if (!roomId) return;
 
-        // 이전에 등록된 리스너 제거
-        socket.off('receive_message');
+        socket.emit('joinRoom', roomId);
 
-        // 새로운 리스너 등록
-        socket.on('receive_message', (data: any) => {
-            console.log('Received message:', data);
-            
-            // 메시지가 현재 사용자가 보낸 것이 아닌 경우에만 상태 업데이트
-            if (data.senderId !== userId) {
-                setMessages((prevMessages) => {
-                    console.log('Updating messages state:', [...prevMessages, data]);
-                    return [...prevMessages, data];
-                });
-            }
+        socket.on('receiveMessage', (data: any) => {
+            setMessages((prevMessages) => [...prevMessages, data]);
         });
 
         return () => {
-            console.log('Cleaning up event listeners');
-            socket.off('receive_message');
+            socket.off('receiveMessage');
         };
-    }, []); // 의존성 배열을 빈 배열로 유지하여 초기 마운트 시에만 실행되도록 합니다.
+    }, [roomId]);
 
     const handleSendMessage = (message: string) => {
-        const timestamp = new Date().toISOString();
         const newMessage = {
-            message,
-            sender: 'You',
+            roomId,
             senderId: userId,
             senderProfile: userProfile,
-            timestamp,
-            isOwnMessage: true,
+            message,
+            timestamp: new Date().toISOString(),
         };
 
-        console.log('Sending message:', newMessage);
-
-        // 메시지를 서버에 전송하고 상태에 추가합니다.
-        socket.emit('send_message', newMessage);
-        setMessages((prevMessages) => {
-            console.log('Updating messages state after send:', [...prevMessages, newMessage]);
-            return [...prevMessages, newMessage];
-        });
+        socket.emit('sendMessage', newMessage);
+        setMessages((prevMessages) => [...prevMessages, newMessage]);
     };
 
     return (
@@ -64,7 +52,7 @@ const ChatPage = () => {
                     <ChatMessage
                         key={index}
                         message={msg.message}
-                        sender={msg.sender}
+                        sender={msg.senderId}
                         senderId={msg.senderId}
                         senderProfile={msg.senderProfile}
                         timestamp={msg.timestamp}
