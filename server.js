@@ -16,6 +16,8 @@ const KAKAO_SECRET_KEY = 'DEV418F3416856E0F8D07D365ADD2E0B7387BDE3';
 const KAKAO_CLIENT_ID = '6d162d06e3d6478d7d70318a5a6e8735';
 const KAKAO_REDIRECT_URI = 'http://localhost:3000/api/auth/kakao/callback';
 
+let rooms = {}; // 각 방의 남은 시간을 저장할 객체
+
 async function init() {
     // MySQL 연결 설정
     const db = await mysql.createConnection({
@@ -539,18 +541,62 @@ server.post('/api/createSingleChatRoom', async (req, res) => {
             socket.on('joinRoom', (roomId) => {
                 socket.join(roomId);
                 console.log(`User joined room ${roomId}`);
+                
+                // 방에 처음 접속한 경우 24시간 타이머 시작
+                if (!rooms[roomId]) {
+                    rooms[roomId] = 24 * 60 * 60; // 24시간을 초로 변환
+                    startTimer(roomId);
+                }
+
+                // 현재 남은 시간 전송
+                io.to(socket.id).emit('updateTimer', rooms[roomId]);
             });
 
-            socket.on('sendMessage', (data) => {
-                io.to(data.roomId).emit('receiveMessage', data);
+            // 메시지 전송 핸들러
+            socket.on('sendMessage', async (data) => {
+                const { senderId, roomId, message } = data;
+
+                // 데이터베이스에서 username을 조회
+                const [userRows] = await db.execute('SELECT username FROM users WHERE kakao_id = ?', [senderId]);
+
+                if (userRows.length > 0) {
+                    const username = userRows[0].username;
+
+                    // 메시지 데이터에 username을 추가하여 전송
+                    const messageData = {
+                        id: data.id,
+                        roomId,
+                        senderId,
+                        senderName: username,  // username 추가
+                        senderProfile: data.senderProfile,
+                        message,
+                        timestamp: new Date().toISOString(),
+                    };
+
+                    // 해당 채팅방에 있는 모든 클라이언트에게 메시지 전송
+                    io.to(roomId).emit('receiveMessage', messageData);
+                }
             });
+
 
             socket.on('disconnect', () => {
                 console.log('User disconnected:', socket.id);
             });
         });
 
-        
+        const startTimer = (roomId) => {
+            const timer = setInterval(() => {
+                if (rooms[roomId] <= 0) {
+                    clearInterval(timer);
+                    io.to(roomId).emit('timerEnded');
+                    delete rooms[roomId]; // 방의 타이머 종료 후 삭제
+                } else {
+                    rooms[roomId]--;
+                    io.to(roomId).emit('updateTimer', rooms[roomId]);
+                }
+            }, 1000);
+        };
+
 
         server.all('*', (req, res) => {
             return handle(req, res);

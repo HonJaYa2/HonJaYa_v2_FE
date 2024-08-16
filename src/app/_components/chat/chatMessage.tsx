@@ -8,14 +8,15 @@ interface ChatMessageProps {
     message: string;
     isOwnMessage: boolean;
     timestamp: string;
-    sender: string;
     senderId: string;
+    senderName: string;
     senderProfile: string;
+    showSenderName: boolean; // 추가된 속성
     isLast: boolean;
-    onDelete: () => void; // 삭제(아직 미구현)
+    onDelete: () => void;
 }
 
-const ChatMessage: React.FC<ChatMessageProps> = ({ message, sender, senderId, senderProfile, isOwnMessage, timestamp, isLast, onDelete }) => {
+const ChatMessage: React.FC<ChatMessageProps> = ({ message, senderId, senderName, senderProfile, isOwnMessage, timestamp, showSenderName, onDelete }) => {
     const [isHovered, setIsHovered] = useState(false);
     const [isLiked, setIsLiked] = useState(false);
 
@@ -49,9 +50,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, sender, senderId, se
                     )}
                 </div>
 
-                {isLast && (
+                {showSenderName && (
                     <>
-                        <span className="text-xs text-gray-500"><b>{sender}</b></span>
+                        <span className="text-xs text-gray-500"><b>{senderName}</b></span>
                         <span className="text-xs text-gray-500 mt-1">{new Date(timestamp).toLocaleTimeString()}</span>
                     </>
                 )}
