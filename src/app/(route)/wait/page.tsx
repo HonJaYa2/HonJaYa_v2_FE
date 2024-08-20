@@ -14,9 +14,12 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getData } from "@/app/api/api";
 import GroupChatContainer from "@/app/_components/wait/team/GroupChatContainer";
-import SingleChatContainer from "@/app/_components/wait/single/SingleChatContainer";
+// import SingleChatContainer from "@/app/_components/wait/single/SingleChatContainer";
 import MatchedUserModal from "@/app/_components/wait/MatchedUserModal";
-import MatchingModal from "@/app/_components/wait/MatchingModal";
+import MatchingModal from "@/app/_components/wait/MatchingModal"
+import MatchedUserContainer from '@/app/_components/wait/MatchedUserContainer';
+
+
 
 export type filterDataType = {
     maxAge: number,
@@ -189,7 +192,7 @@ const WaitingRoom = () => {
     };
 
     return (
-        <div className="flex h-screen w-screen flex-col items-center justify-between bg-white">
+        <div className="relative flex h-screen w-screen flex-col items-center justify-between bg-cover bg-center bg-no-repeat">
             <Navigationbar />
             {matchingModalOpen && filterData && !matchedUserId && (
     <MatchingModal
@@ -218,7 +221,7 @@ const WaitingRoom = () => {
 
 )}
 
-            <div style={{ height: "90%" }} className="w-full overflow-y-auto bg-balloons">
+            <div className="w-full h-full overflow-y-auto bg-balloons">
                 <div className="w-full h-auto min-h-4"></div>
                 <div className="w-full h-1/10 text-3xl font-jua flex items-end justify-around box-border pt-2 px-10">
                     {isTeam ? <div className="flex items-end w-3/10 h-full text-4xl">채팅방</div> : <div className="flex w-3/10 items-end h-full text-4xl">매칭된 상대</div>}
@@ -257,7 +260,11 @@ const WaitingRoom = () => {
                         )}
                     </div>
                 </div>
-                {isTeam ? onGroup ? (
+                <div className="my-4">
+                    <MatchedUserContainer />
+                </div>
+
+                {/* {isTeam ? onGroup ? (
                     <GroupChatContainer
                         objects={groupObjects}
                         prevSlide={prevSlide}
@@ -273,7 +280,7 @@ const WaitingRoom = () => {
                         currentPage={currentPage}
                         objectsPerPage={objectsPerPage}
                     />
-                )}
+                )} */}
                 <div className="w-full h-2/10">
                     {isTeam ?
                         <TeamChatButtons

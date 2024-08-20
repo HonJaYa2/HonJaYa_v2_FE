@@ -42,6 +42,7 @@ const MatchedUserModal = ({ matchedUserId, handleClose }: Props) => {
             hasCreatedRoom.current = true;
         }
     }, [matchedUserId]);
+    
 
     const fetchUserInfo = async () => {
         try {
@@ -76,9 +77,24 @@ const MatchedUserModal = ({ matchedUserId, handleClose }: Props) => {
             if (response.status === 200) {
                 console.log('Chat room created with ID:', response.data.SingleChatRoomId);
                 setSingleChatRoomId(response.data.SingleChatRoomId);
+                // 매칭된 사용자 정보를 저장
+                saveMatchedUser(cookies['user'].id, cookies['user'].id);
             }
         } catch (error) {
             console.error('Failed to create chat room:', error);
+        }
+    };
+
+    const saveMatchedUser = async (user_kakao_id: string, matched_kakao_id: string) => {
+        try {
+            console.log('Attempting to save matched user:', { user_kakao_id, matched_kakao_id });
+            const response = await axios.post('/api/saveMatchedUser', {
+                user_kakao_id,
+                matched_kakao_id,
+            });
+            console.log(response.data.message);
+        } catch (error) {
+            console.error('Failed to save matched user:', error);
         }
     };
 

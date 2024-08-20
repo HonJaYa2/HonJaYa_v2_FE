@@ -597,6 +597,47 @@ server.post('/api/createSingleChatRoom', async (req, res) => {
             }, 1000);
         };
 
+        // 매칭된 유저 정보 저장
+        server.post('/api/saveMatchedUser', async (req, res) => {
+            const { user_kakao_id, matched_kakao_id } = req.body;
+        
+            try {
+                const query = `
+                    INSERT INTO matched_users (user_kakao_id, matched_kakao_id)
+                    VALUES (?, ?)
+                `;
+                await db.execute(query, [user_kakao_id, matched_kakao_id]);
+                res.status(200).json({ message: 'Matched user saved successfully' });
+                console.log('Matched user saved successfully:', response.data); 
+            } catch (error) {
+                console.error('Error saving matched user:', error);
+                res.status(500).json({ error: 'Failed to save matched user' });
+            }
+        });
+        
+           // 매칭된 사용자 조회
+server.get('/api/getMatchedUsers/:userKakaoId', async (req, res) => {
+    const { userKakaoId } = req.params;
+
+    try {
+        const query = `
+            SELECT u.username, u.profileImage, mu.matched_at 
+            FROM matched_users mu
+            JOIN users u ON u.kakao_id = mu.matched_kakao_id
+            WHERE mu.user_kakao_id = ?
+            ORDER BY mu.matched_at DESC
+        `;
+        const [rows] = await db.execute(query, [userKakaoId]);
+
+        res.status(200).json(rows);
+    } catch (error) {
+        console.error('Error fetching matched users:', error);
+        res.status(500).json({ error: 'Failed to fetch matched users' });
+    }
+});
+
+        
+
 
         server.all('*', (req, res) => {
             return handle(req, res);
