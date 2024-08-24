@@ -78,7 +78,7 @@ const MatchedUserModal = ({ matchedUserId, handleClose }: Props) => {
                 console.log('Chat room created with ID:', response.data.SingleChatRoomId);
                 setSingleChatRoomId(response.data.SingleChatRoomId);
                 // 매칭된 사용자 정보를 저장
-                saveMatchedUser(cookies['user'].id, cookies['user'].id);
+                saveMatchedUser(cookies['user'].id, matchedUserId);
             }
         } catch (error) {
             console.error('Failed to create chat room:', error);

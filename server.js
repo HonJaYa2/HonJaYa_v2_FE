@@ -516,6 +516,7 @@ server.post('/api/createSingleChatRoom', async (req, res) => {
             const [result] = await db.execute(createQuery, [sortedIds[0], sortedIds[1]]);
 
             const SingleChatRoomId = result.insertId;
+            console.log(`Created new room with ID: ${SingleChatRoomId}`);
             res.status(200).json({ SingleChatRoomId });
         }
     } catch (error) {
@@ -545,7 +546,10 @@ server.post('/api/createSingleChatRoom', async (req, res) => {
                 // 방에 처음 접속한 경우 24시간 타이머 시작
                 if (!rooms[roomId]) {
                     rooms[roomId] = 24 * 60 * 60; // 24시간을 초로 변환
+                    console.log(`Starting timer for room ${roomId} with ${rooms[roomId]} seconds remaining.`);
                     startTimer(roomId);
+                } else {
+                    console.log(`Room ${roomId} already has an active timer with ${rooms[roomId]} seconds remaining.`);
                 }
 
                 // 현재 남은 시간 전송
@@ -561,6 +565,16 @@ server.post('/api/createSingleChatRoom', async (req, res) => {
 
                 if (userRows.length > 0) {
                     const username = userRows[0].username;
+                    const formatDate = (date) => {
+                        const d = new Date(date);
+                        const year = d.getFullYear();
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        const hours = String(d.getHours()).padStart(2, '0');
+                        const minutes = String(d.getMinutes()).padStart(2, '0');
+                        const seconds = String(d.getSeconds()).padStart(2, '0');
+                        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+                    };
 
                     // 메시지 데이터에 username을 추가하여 전송
                     const messageData = {
@@ -570,8 +584,22 @@ server.post('/api/createSingleChatRoom', async (req, res) => {
                         senderName: username,  // username 추가
                         senderProfile: data.senderProfile,
                         message,
-                        timestamp: new Date().toISOString(),
+                        timestamp: formatDate(new Date()),
                     };
+
+                    // 메시지를 데이터베이스에 저장
+                try {
+                    await db.execute(`
+                        INSERT INTO chat_messages (room_id, sender_id, message, timestamp)
+                        VALUES (?, ?, ?, ?)
+                    `, [roomId, senderId, message, messageData.timestamp]);
+                    
+                    console.log('Message inserted to DB:', { roomId, senderId, message, timestamp: messageData.timestamp });
+                    
+                    console.log('Message saved to database:', messageData);
+                } catch (error) {
+                    console.error('Failed to save message:', error);
+                }
 
                     // 해당 채팅방에 있는 모든 클라이언트에게 메시지 전송
                     io.to(roomId).emit('receiveMessage', messageData);
@@ -597,46 +625,111 @@ server.post('/api/createSingleChatRoom', async (req, res) => {
             }, 1000);
         };
 
+        // 채팅방 내역 가져오기
+        server.get('/api/getChatMessages/:roomId', async (req, res) => {
+            const { roomId } = req.params;
+        
+            try {
+                const [messages] = await db.execute(
+                    'SELECT sender_id, message, timestamp FROM chat_messages WHERE room_id = ? ORDER BY timestamp ASC',
+                    [roomId]
+                );
+                console.log('Fetched chat messages:', messages);
+                res.status(200).json(messages);
+            } catch (error) {
+                console.error('Failed to fetch chat messages:', error);
+                res.status(500).json({ error: 'Failed to fetch chat messages' });
+            }
+        });
+        
+
         // 매칭된 유저 정보 저장
         server.post('/api/saveMatchedUser', async (req, res) => {
             const { user_kakao_id, matched_kakao_id } = req.body;
-        
+
             try {
                 const query = `
                     INSERT INTO matched_users (user_kakao_id, matched_kakao_id)
                     VALUES (?, ?)
                 `;
                 await db.execute(query, [user_kakao_id, matched_kakao_id]);
+
+                console.log('Matched user saved successfully:', { user_kakao_id, matched_kakao_id }); // 수정된 로그
                 res.status(200).json({ message: 'Matched user saved successfully' });
-                console.log('Matched user saved successfully:', response.data); 
             } catch (error) {
                 console.error('Error saving matched user:', error);
-                res.status(500).json({ error: 'Failed to save matched user' });
+                if (!res.headersSent) { // 응답이 이미 전송되었는지 확인
+                    res.status(500).json({ error: 'Failed to save matched user' });
+                }
+            }
+        });
+
+        
+           // 매칭된 사용자 조회
+           server.get('/api/getMatchedUsers/:userKakaoId', async (req, res) => {
+            const { userKakaoId } = req.params;
+        
+            try {
+                const query = `
+                    SELECT u.kakao_id AS partnerId, u.username, u.profileImage, mu.matched_at 
+                    FROM matched_users mu
+                    JOIN users u ON u.kakao_id = mu.matched_kakao_id
+                    WHERE mu.user_kakao_id = ?
+                    ORDER BY mu.matched_at DESC
+                `;
+                
+                const [rows] = await db.execute(query, [userKakaoId]);
+                console.log('Matched users fetched:', rows);
+        
+                res.status(200).json(rows);
+            } catch (error) {
+                console.error('Error fetching matched users:', error);
+                res.status(500).json({ error: 'Failed to fetch matched users' });
             }
         });
         
-           // 매칭된 사용자 조회
-server.get('/api/getMatchedUsers/:userKakaoId', async (req, res) => {
-    const { userKakaoId } = req.params;
 
-    try {
-        const query = `
-            SELECT u.username, u.profileImage, mu.matched_at 
-            FROM matched_users mu
-            JOIN users u ON u.kakao_id = mu.matched_kakao_id
-            WHERE mu.user_kakao_id = ?
-            ORDER BY mu.matched_at DESC
-        `;
-        const [rows] = await db.execute(query, [userKakaoId]);
+       // 서버에서 타이머 확인 API
+server.get('/api/getRoomTime/:roomId', (req, res) => {
+    const { roomId } = req.params;
 
-        res.status(200).json(rows);
-    } catch (error) {
-        console.error('Error fetching matched users:', error);
-        res.status(500).json({ error: 'Failed to fetch matched users' });
+    // 방의 남은 시간을 저장하는 rooms 객체를 사용하여 남은 시간 확인
+    const remainingTime = rooms[roomId];
+
+    // 콘솔 로그로 남은 시간 확인
+    if (remainingTime !== undefined) {
+        console.log(`Room ${roomId} has ${remainingTime} seconds remaining.`);
+        res.status(200).json({ remainingTime, roomId });
+    } else {
+        console.log(`Room ${roomId} not found or time has expired.`);
+        res.status(404).json({ error: 'Room not found or time has expired' });
     }
 });
 
-        
+
+// partnerId를 기반으로 roomId 가져오기
+server.get('/api/getRoomId/:partnerId', async (req, res) => {
+    const { partnerId } = req.params;
+
+    try {
+        const findQuery = `
+            SELECT id FROM single_chat_rooms
+            WHERE (user1_id = ? OR user2_id = ?)
+            ORDER BY id ASC
+        `;
+        const [existingRooms] = await db.execute(findQuery, [partnerId, partnerId]);
+
+        if (existingRooms.length > 0) {
+            const roomId = existingRooms[0].id;
+            res.status(200).json({ roomId });
+        } else {
+            res.status(404).json({ error: 'Room not found' });
+        }
+    } catch (error) {
+        console.error('Failed to get room ID:', error);
+        res.status(500).json({ error: 'Failed to get room ID' });
+    }
+});
 
 
         server.all('*', (req, res) => {

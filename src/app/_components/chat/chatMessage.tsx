@@ -11,12 +11,13 @@ interface ChatMessageProps {
     senderId: string;
     senderName: string;
     senderProfile: string;
-    showSenderName: boolean; // 추가된 속성
+    showSenderName: boolean; 
     isLast: boolean;
     onDelete: () => void;
 }
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ message, senderId, senderName, senderProfile, isOwnMessage, timestamp, showSenderName, onDelete }) => {
+    console.log('ChatMessage Props:', { senderId, isOwnMessage, message })
     const [isHovered, setIsHovered] = useState(false);
     const [isLiked, setIsLiked] = useState(false);
 
